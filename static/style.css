@@ -234,7 +234,7 @@ nav.main-nav .nav-links a.active { /* Added .active class for current page indic
 /* Stats (from recommendations.html) */
 .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Adjusted minmax for wider columns */
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -444,7 +444,7 @@ body.sources-page {
 
 /* General container for centered content */
 .main-content-area {
-    max-width: 1200px;
+    max-width: 1400px; /* Increased max-width */
     margin: 0 auto; /* Center content */
     padding: 20px;    /* Add padding around content */
     flex-grow: 1; /* Allows this area to grow and push footer down */
