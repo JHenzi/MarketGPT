@@ -828,7 +828,8 @@ def store_recommendations(recommendations, date_str):
                 "article_title": rec["article_title"],
                 "article_url": rec["article_url"],
                 "date": date_str,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "active": True   # <-- Add this line
             }]
             )
             print(f"[store_recommendations] Stored: {rec['ticker']} - {rec['recommendation']}")
@@ -845,8 +846,10 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
         # Get all recommendations first, then filter in Python
         # ChromaDB's where clause is limited, so we'll do post-filtering
         results = recommendations_collection.get(
-            include=["documents", "metadatas"]
+            include=["documents", "metadatas"],
+            where={"active": True}
         )
+
 
         # Filter results based on parameters
         filtered_docs = []
@@ -948,87 +951,60 @@ def view_recommendations():
 def delete_recommendation():
     data = request.get_json()
     ticker = data.get("ticker")
-    # The rec_id in the HTML is a combination of recommendation type and date,
-    # but the actual ID in ChromaDB is ticker_date_recommendation
-    # We need to construct the correct ID to delete.
-    # However, the `store_recommendations` function creates an id like: f"{rec['ticker']}_{date_str}_{rec['recommendation']}"
-    # We need to ensure we can reconstruct this or have enough info.
-    # Let's assume for now the client will send enough info to identify the specific document.
-    # A simpler approach might be to delete ALL recommendations for a ticker.
-
-    rec_id_part = data.get("rec_id") # This might be like "BUY_2023-10-27"
+    rec_id_part = data.get("rec_id")  # e.g., "BUY_2023-10-27"
 
     if not ticker:
         return jsonify({"status": "error", "message": "Ticker not provided"}), 400
 
     try:
-        # Option 1: Delete all recommendations for a ticker if specific ID is hard to get
-        # results = recommendations_collection.get(where={"ticker": ticker})
-        # if results["ids"]:
-        #     recommendations_collection.delete(ids=results["ids"])
-        #     return jsonify({"status": "success", "message": f"Stopped watching {ticker}"}), 200
-        # else:
-        #     return jsonify({"status": "error", "message": f"No recommendations found for {ticker}"}), 404
-
-        # Option 2: Attempt to delete a specific recommendation if we can form the ID.
-        # The button sends `data-rec-id="{{ rec.recommendation }}_{{ rec.date }}"`
-        # The ID in DB is `f"{ticker}_{date}_{recommendation}"`
-        # So, if rec_id_part is "BUY_2023-11-01", and ticker is "AAPL",
-        # the DB ID would be "AAPL_2023-11-01_BUY".
         if rec_id_part:
             parts = rec_id_part.split('_')
             if len(parts) == 2:
                 recommendation_type = parts[0]
                 date_str = parts[1]
-                chroma_id_to_delete = f"{ticker}_{date_str}_{recommendation_type}"
+                chroma_id = f"{ticker}_{date_str}_{recommendation_type}"
 
-                print(f"[delete_recommendation] Attempting to delete ID: {chroma_id_to_delete}")
+                print(f"[delete_recommendation] Attempting to mark ID as inactive: {chroma_id}")
                 try:
-                    recommendations_collection.delete(ids=[chroma_id_to_delete])
-                    print(f"[delete_recommendation] Successfully deleted ID: {chroma_id_to_delete}")
-                    return jsonify({"status": "success", "message": f"Recommendation for {ticker} ({recommendation_type} on {date_str}) removed"}), 200
+                    # Try to fetch the document
+                    existing = recommendations_collection.get(ids=[chroma_id])
+                    if existing["ids"]:
+                        # Update metadata with active=False
+                        updated_metadata = existing["metadatas"][0]
+                        updated_metadata["active"] = False
+                        recommendations_collection.update(
+                            ids=[chroma_id],
+                            metadatas=[updated_metadata]
+                        )
+                        return jsonify({
+                            "status": "success",
+                            "message": f"Recommendation for {ticker} ({recommendation_type} on {date_str}) marked inactive"
+                        }), 200
+                    else:
+                        return jsonify({"status": "info", "message": "Recommendation not found."}), 404
                 except Exception as e:
-                    # This might fail if the ID doesn't exist, which is okay.
-                    # Or it could be a more serious error.
-                    # ChromaDB's delete doesn't error if ID not found, it just does nothing.
-                    # So we might need to check if it existed first if we want to give specific feedback.
-                    print(f"[delete_recommendation] Info: Could not delete ID {chroma_id_to_delete} (may not exist or error): {e}")
-                    # Fallback: try deleting all for the ticker if specific delete seems to fail or if that's preferred.
-                    # For now, let's assume specific delete is what's wanted.
-                    # If it didn't delete, it might be because the ID was wrong or it was already gone.
-                    # We can refine this if the specific ID is not working as expected.
-                    # A robust way is to query first, then delete.
-                    existing_rec = recommendations_collection.get(ids=[chroma_id_to_delete])
-                    if not existing_rec["ids"]:
-                        return jsonify({"status": "info", "message": f"Recommendation for {ticker} ({recommendation_type} on {date_str}) already removed or not found."}), 200
+                    print(f"[delete_recommendation] Error updating: {e}")
+                    return jsonify({"status": "error", "message": str(e)}), 500
 
-
-            # If rec_id_part is not in the expected format, or if specific deletion is too complex,
-            # fall back to deleting all recommendations for the ticker.
-            # This is a safer bet if the ID matching is tricky.
-            print(f"[delete_recommendation] rec_id_part '{rec_id_part}' not usable for specific deletion, or specific deletion failed. Checking all for ticker {ticker}.")
-            results = recommendations_collection.get(where={"ticker": ticker})
-            if results["ids"]:
-                recommendations_collection.delete(ids=results["ids"])
-                print(f"[delete_recommendation] Deleted ALL recommendations for ticker: {ticker}")
-                return jsonify({"status": "success", "message": f"Stopped watching all recommendations for {ticker}"}), 200
-            else:
-                print(f"[delete_recommendation] No recommendations found for ticker {ticker} to delete.")
-                return jsonify({"status": "info", "message": f"No recommendations found for {ticker} to remove."}), 200
-
-        else: # if no rec_id_part, delete all for the ticker
-            print(f"[delete_recommendation] No rec_id_part provided. Deleting all for ticker {ticker}.")
-            results = recommendations_collection.get(where={"ticker": ticker})
-            if results["ids"]:
-                recommendations_collection.delete(ids=results["ids"])
-                return jsonify({"status": "success", "message": f"Stopped watching all recommendations for {ticker}"}), 200
-            else:
-                return jsonify({"status": "info", "message": f"No recommendations found for {ticker} to remove."}), 200
-
+        # No rec_id_part — mark all recommendations for the ticker as inactive
+        print(f"[delete_recommendation] No rec_id_part provided. Marking all for ticker {ticker} as inactive.")
+        results = recommendations_collection.get(where={"ticker": ticker})
+        if results["ids"]:
+            updated_metadatas = []
+            for meta in results["metadatas"]:
+                meta["active"] = False
+                updated_metadatas.append(meta)
+            recommendations_collection.update(
+                ids=results["ids"],
+                metadatas=updated_metadatas
+            )
+            return jsonify({"status": "success", "message": f"All recommendations for {ticker} marked as inactive"}), 200
+        else:
+            return jsonify({"status": "info", "message": f"No active recommendations found for {ticker}."}), 200
 
     except Exception as e:
-        print(f"[delete_recommendation] Error deleting recommendation for {ticker}: {e}")
-        return jsonify({"status": "error", "message": f"Error stopping watching {ticker}: {str(e)}"}), 500
+        print(f"[delete_recommendation] Error marking recommendation inactive for {ticker}: {e}")
+        return jsonify({"status": "error", "message": f"Error updating {ticker}: {str(e)}"}), 500
 
 
 def periodic_fetch_and_report():
