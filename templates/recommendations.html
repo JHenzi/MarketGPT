@@ -347,7 +347,7 @@
 
     {% if stock_data %}
         <!-- Statistics - Fixed calculation -->
-        {% set ns = namespace(total_buy=0, total_sell=0) %}
+        {% set ns = namespace(total_buy=0, total_sell=0, total_hold=0) %}
         {% for ticker, data in stock_data.items() %}
             {% if data.recommendations %}
                 {% for rec in data.recommendations %}
@@ -355,10 +355,13 @@
                         {% set ns.total_buy = ns.total_buy + 1 %}
                     {% elif rec.recommendation == 'SELL' %}
                         {% set ns.total_sell = ns.total_sell + 1 %}
+                    {% elif rec.recommendation == 'HOLD' %}
+                        {% set ns.total_hold = ns.total_hold + 1 %}
                     {% endif %}
                 {% endfor %}
             {% endif %}
         {% endfor %}
+
         
         <div class="stats">
             <div class="stat-card">
@@ -368,6 +371,10 @@
             <div class="stat-card">
                 <div class="stat-number sell">{{ ns.total_sell }}</div>
                 <div class="stat-label">Sell Signals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color: #f59e0b;">{{ ns.total_hold }}</div>
+                <div class="stat-label">Hold Signals</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number total">{{ stock_data | length }}</div>
