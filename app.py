@@ -459,7 +459,11 @@ def generate_market_report(collection, model: SentenceTransformer, top_k=10, out
             query_embeddings=[embedding.tolist()],
             n_results=top_k * 3,  # Fetch more to allow for filtering/deduplication
             include=["documents", "metadatas"],
-            where={"published_date": today_str}
+            #where={"published_date": today_str}
+            # This needs fixed!
+            # TODO: Fix the date filtering - we are getting null results. Maybe this whole function and page need to be rewritten.
+            # We are getting a key error when querying by date, some indexing issue.
+            # Some online suggestions are to use a newer version of ChromaDB.
         )
 
         docs = results["documents"][0]
@@ -499,6 +503,9 @@ def generate_market_report(collection, model: SentenceTransformer, top_k=10, out
 
     print(f"[generate_market_report] Report saved to {output_path}")
 
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 def extract_stock_recommendations(collection, model, today_str):
     """

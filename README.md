@@ -28,6 +28,12 @@ The application follows a multi-step pipeline:
 4. **Generate Report**: The system uses vector search to find the most relevant articles for predefined market categories and compiles them into a markdown report.
 5. **Serve**: A **Flask** web server provides the frontend, answering user requests by querying the ChromaDB database and interacting with the LLM (as configured in `llm_config.json`) for the Q&A and recommendation features.
 
+## Known Issues/Bugs
+
+The Market Report is not outputing anything! There is a key error when we add a where. clause for today's date. Removing it still doesn't generate a file. Unsure when and how this broke but worth refactoring the entire code here.
+
+We need a "/" route.
+
 ---
 
 ## 🚀 Setup and Installation
@@ -94,6 +100,7 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
 
    - Open `llm_config.json` in a text editor.
    - **For local LLM:** Update the `endpoint` if your local server uses a different address (e.g., `http://localhost:11434/v1/chat/completions` for Ollama). The `model` field can often be left as `"default"` or set to a specific model name if your server requires it. `api_key` can be `null`.
+
      ```json
      {
        "provider": "local",
@@ -102,7 +109,9 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
        "api_key": null
      }
      ```
+
    - **For OpenAI:** Replace `"YOUR_OPENAI_API_KEY_HERE"` with your actual OpenAI API key. You can also change the `model` (e.g., `"gpt-4o-mini"`, `"gpt-3.5-turbo"`).
+
      ```json
      {
        "provider": "openai",
@@ -111,6 +120,7 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
        "api_key": "YOUR_OPENAI_API_KEY_HERE"
      }
      ```
+
    - **For Claude:** Replace `"YOUR_CLAUDE_API_KEY_HERE"` with your actual Anthropic API key. Update the `model` if needed (e.g., `"claude-3-sonnet-20240229"`).
 
      ```json

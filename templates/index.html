@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>MarketGPT – AI-Powered Market Insights</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- Navbar -->
+<nav class="bg-gray-900 text-white py-4 shadow">
+  <div class="container mx-auto px-6 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">📈 MarketGPT</h1>
+    <div class="space-x-4 text-sm">
+      <a href="/report" class="hover:underline text-gray-300">📊 Report</a>
+      <a href="/recommendations" class="hover:underline text-gray-300">💡 Recommendations</a>
+      <a href="/sources" class="hover:underline text-gray-300">🔍 Sources</a>
+      <a href="/ask" class="hover:underline text-gray-300">💬 Ask</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="bg-white py-20">
+  <div class="container mx-auto px-6 text-center">
+    <h2 class="text-4xl font-bold text-gray-800 mb-4">MarketGPT</h2>
+    <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+      MarketGPT is an AI-powered financial news analysis platform that aggregates, analyzes, and summarizes market news to provide <strong>actionable insights</strong> – all powered by your local or cloud-based LLM.
+    </p>
+    <div class="mt-8">
+      <a href="/ask" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md text-lg transition">💬 Try the Chat</a>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="bg-gray-100 py-16">
+  <div class="container mx-auto px-6">
+    <h3 class="text-3xl font-semibold text-center mb-12">✨ Features</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h4 class="text-xl font-semibold mb-2">📰 Automated News Aggregation</h4>
+        <p class="text-gray-600">Pulls breaking news from financial RSS feeds like CNBC and stores them for analysis.</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h4 class="text-xl font-semibold mb-2">🤖 Configurable LLM Pipeline</h4>
+        <p class="text-gray-600">Use OpenAI, Claude, or a local model (LM Studio, Ollama) with an easy JSON config.</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h4 class="text-xl font-semibold mb-2">📚 Semantic Vector Search</h4>
+        <p class="text-gray-600">Query news by meaning, not just keywords – powered by ChromaDB + embeddings.</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h4 class="text-xl font-semibold mb-2">📈 AI Stock Recommendations</h4>
+        <p class="text-gray-600">Extracts BUY/SELL signals from headlines and explains the reasoning and source.</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h4 class="text-xl font-semibold mb-2">📊 Market Report Generator</h4>
+        <p class="text-gray-600">Automatically classifies news into themes and creates daily market summaries.</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h4 class="text-xl font-semibold mb-2">💬 Chat Q&A Interface</h4>
+        <p class="text-gray-600">Ask questions about today’s news and get answers sourced from the actual articles.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Screenshot -->
+<section class="py-16">
+  <div class="container mx-auto px-6 text-center">
+    <h3 class="text-2xl font-bold mb-6">🔍 Screenshot – Stock Recommendations</h3>
+    <img src="/images/recommendations.png" alt="Recommendations Screenshot" class="mx-auto rounded-lg shadow-lg border border-gray-300">
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-gray-900 text-white py-6 text-center text-sm mt-20">
+  MarketGPT is open source. <a href="https://github.com/JHenzi/MarketGPT" class="underline hover:text-blue-400">View on GitHub</a>.
+</footer>
+
+</body>
+</html>
