@@ -7,11 +7,11 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 ![Recommendations](/images/recommendations.png)
 
 - **Automated News Aggregation**: Fetches the latest news from multiple financial RSS feeds (e.g., CNBC).
-- **AI-Powered Summarization**: Uses a local LLM to summarize articles and reduce information overload.
+- **AI-Powered Analysis (Configurable LLM)**: The core application (`app.py`) uses a Large Language Model (LLM) for features like Q&A and stock recommendations. This is configurable via an `llm_config.json` file, allowing you to use providers like OpenAI, Anthropic Claude, or a local LLM (e.g., via LM Studio).
 - **Vector-Based Semantic Search**: Stores articles in a ChromaDB vector database, allowing users to search for news based on concepts, not just keywords.
 - **Daily Market Report**: Automatically categorizes today's news into key market areas (e.g., "Interest Rates," "Sector News," "Global Markets") and generates a daily report.
-- **AI Stock Recommendations**: Analyzes news to extract potential BUY/SELL signals for specific stocks, including the reasoning and source article.
-- **Interactive Q&A**: A chat interface (`/ask`) that uses a RAG pipeline to answer user questions based on the latest news, complete with source citations.
+- **AI Stock Recommendations**: The AI agent analyzes news (via `app.py` and its configured LLM) to extract potential BUY/SELL signals for specific stocks, including the reasoning and source article.
+- **Interactive Q&A**: A chat interface (`/ask`) that uses a RAG pipeline (powered by the configured LLM in `app.py`) to answer user questions based on the latest news, complete with source citations.
 - **Web Interface**: A clean, user-friendly web UI built with Flask and Tailwind CSS for easy navigation between reports, recommendations, and search.
 
 ---
@@ -21,12 +21,12 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 The application follows a multi-step pipeline:
 
 1. **Fetch**: A background process periodically scrapes RSS feeds for new articles.
-2. **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database.
-3. ~~**Analyze & Summarize**:~~
-   - ~~Another background process identifies articles that haven't been summarized and uses a local LLM to generate a concise summary, which is then saved back to the database.~~
-   - ~~A separate process analyzes the day's news to extract and store stock recommendations.~~ This doesn't work.
+2. **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database. The database is automatically created if it doesn't exist. If you encounter issues or want to start fresh with news articles, you can use the `delete_db.py` script (see Helper Scripts). Stock recommendations are stored in a separate ChromaDB collection.
+3. **Analyze & Recommend (via `app.py`)**:
+   - The main application's background tasks analyze the day's news using the LLM configured in `llm_config.json` to extract and store stock recommendations.
+   - The Q&A feature also uses this configured LLM to generate responses.
 4. **Generate Report**: The system uses vector search to find the most relevant articles for predefined market categories and compiles them into a markdown report.
-5. **Serve**: A **Flask** web server provides the frontend, answering user requests by querying the ChromaDB database and interacting with the LLM for the Q&A feature.
+5. **Serve**: A **Flask** web server provides the frontend, answering user requests by querying the ChromaDB database and interacting with the LLM (as configured in `llm_config.json`) for the Q&A and recommendation features.
 
 ---
 
@@ -35,7 +35,9 @@ The application follows a multi-step pipeline:
 ### Prerequisites
 
 - **Python 3.8+**
-- **A local LLM server**: This project is configured to work with an LLM served via an OpenAI-compatible API. A great option is LM Studio.
+- **LLM Access**: Depending on your choice, you'll need:
+  - Access to an OpenAI or Anthropic Claude API (and an API key).
+  - Or, a local LLM server (e.g., LM Studio, Ollama) that provides an OpenAI-compatible API endpoint.
 
 ### 1. Clone the Repository
 
@@ -62,19 +64,67 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure the LLM Endpoint
+### 3. Configure the LLM for `app.py`
 
-The application needs to know the address of your LLM server. This is hardcoded in the source.
+The main application (`app.py`) uses an `llm_config.json` file to connect to your chosen Large Language Model.
 
-1. Start your local LLM server. We're using LM Studio in this example, but you can use any chat completion endpoint like OpenAI, Claude API, or other compatible services. Make sure you are serving a model compatible with chat completions.
-2. Note the server URL (e.g., `http://192.168.1.220:1234` for LM Studio, or `https://api.openai.com` for OpenAI).
-3. Open `app.py` and `summarize.py` and update the hardcoded `http://192.168.1.220:1234/v1/chat/completions` URL to match your LLM server's address or API endpoint.
+1. **Choose a configuration template:** In the root directory, you'll find example configuration files:
 
-This version makes it clear that LM Studio is just one option while keeping the specific example intact for those following along with that setup.
+   - `llm_config.json.localLLM` (for local models like LM Studio, Ollama)
+   - `llm_config.json.openai` (for OpenAI API)
+   - `llm_config.json.claude` (for Anthropic Claude API)
+
+2. **Create `llm_config.json`:** Copy your chosen template and rename it to `llm_config.json`. For example:
+
+   ```bash
+   # If using a local LLM
+   cp llm_config.json.localLLM llm_config.json
+   ```
+
+   ```bash
+   # If using OpenAI
+   cp llm_config.json.openai llm_config.json
+   ```
+
+3. **Edit `llm_config.json`:**
+
+   - Open `llm_config.json` in a text editor.
+   - **For local LLM:** Update the `endpoint` if your local server uses a different address (e.g., `http://localhost:11434/v1/chat/completions` for Ollama). The `model` field can often be left as `"default"` or set to a specific model name if your server requires it. `api_key` can be `null`.
+     ```json
+     {
+       "provider": "local",
+       "endpoint": "http://localhost:1234/v1/chat/completions",
+       "model": "default",
+       "api_key": null
+     }
+     ```
+   - **For OpenAI:** Replace `"YOUR_OPENAI_API_KEY_HERE"` with your actual OpenAI API key. You can also change the `model` (e.g., `"gpt-4o-mini"`, `"gpt-3.5-turbo"`).
+     ```json
+     {
+       "provider": "openai",
+       "endpoint": "https://api.openai.com/v1/chat/completions",
+       "model": "gpt-4o-mini",
+       "api_key": "YOUR_OPENAI_API_KEY_HERE"
+     }
+     ```
+   - **For Claude:** Replace `"YOUR_CLAUDE_API_KEY_HERE"` with your actual Anthropic API key. Update the `model` if needed (e.g., `"claude-3-sonnet-20240229"`).
+
+     ```json
+     {
+       "provider": "claude",
+       "endpoint": "https://api.anthropic.com/v1/messages",
+       "model": "claude-3-opus-20240229",
+       "api_key": "YOUR_CLAUDE_API_KEY_HERE"
+     }
+     ```
+
+     _(Note: The Claude endpoint and model might vary based on API version and chosen model. Refer to Anthropic's documentation.)_
+
+The `app.py` will automatically load this configuration when it starts.
 
 ### 4. Run the Application
 
-Start the Flask web server. A background thread will automatically start to fetch news.
+Start the Flask web server. A background thread will automatically start to fetch news, generate reports, and find recommendations.
 
 ```bash
 python app.py
@@ -97,13 +147,11 @@ Navigate to `http://localhost:5020` in your browser.
 
 ### Helper Scripts
 
-> The below doesn't work and needs help!
-
-- **`summarize.py`**: Can be run manually to summarize a batch of articles stored in the database.
+- **`summarize.py`**: **(Deprecated/Broken)** This script was intended to manually summarize articles. However, it is currently not maintained, uses a hardcoded LLM endpoint (does not use `llm_config.json`), and may not function correctly. The main application (`app.py`) handles LLM interactions for its features.
   ```bash
-  python summarize.py
+  # python summarize.py # Not recommended for use
   ```
-- **`delete_db.py`**: Deletes the `marketwatch` collection from ChromaDB. Use this if you want to start fresh.
+- **`delete_db.py`**: Deletes the `marketwatch` (news articles) collection from ChromaDB. Use this if you want to start fresh with article data or are experiencing issues with the news article index. Note: This script does **not** delete the `stock_recommendations` collection.
   ```bash
   python delete_db.py
   ```
@@ -122,3 +170,15 @@ Navigate to `http://localhost:5020` in your browser.
 ├── /templates/               # HTML templates for the web UI
 └── /chroma/                  # Directory for the persistent ChromaDB database
 ```
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork the repository and submit a pull request with your changes. For major changes, please open an issue first to discuss what you would like to change.
+
+## Suggest RSS Feeds
+
+If you have suggestions for additional RSS feeds to include in the news aggregation, please open an issue. The feeds should be well tested against `trafilatura` after the RSS reveals the URL to the news story (note we fetch the feed then the story and store it in ChromaDB).
