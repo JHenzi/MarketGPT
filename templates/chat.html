@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Chat with MarketGPT</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+<!-- Add this navigation bar to your existing templates (report.html, sources.html, chat.html) -->
+<nav style="background: #1a202c; padding: 1rem 0; margin-bottom: 2rem;">
+ <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+ <div style="display: flex; gap: 2rem; align-items: center;">
+ <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
+ <div style="display: flex; gap: 1rem;">
+ <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
+ <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
+ <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
+ <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
+ </div>
+ </div>
+ </div>
+</nav>
+<style>
+nav a:hover {
+ background: #2d3748 !important;
+ color: white !important;
+}
+</style>
+
+<!-- Centered container -->
+<div class="flex-1 flex items-center justify-center px-4">
+ <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-8">
+ <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">🧠 MarketGPT Agent</h1>
+ <form method="POST" class="space-y-4" id="chatForm">
+ <textarea
+ name="question"
+ id="questionInput"
+ rows="4"
+ placeholder="Ask MarketGPT something... (Press Enter to submit, Shift+Enter for new line)"
+ class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+ >{{ question or "" }}</textarea>
+ <div class="text-right">
+ <button
+ type="submit"
+ class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+ >
+ Ask
+ </button>
+ </div>
+ </form>
+{% if answer %}
+ <div class="mt-8 border-t pt-6">
+ <h2 class="text-xl font-semibold text-gray-700 mb-2">💬 Answer</h2>
+ <div class="prose prose-sm sm:prose lg:prose-lg max-w-none text-gray-800" id="answerContent">
+{{ answer | safe }}
+ </div>
+ </div>
+ <div class="mt-6">
+ <button id="toggleContextBtn" class="text-blue-600 hover:underline focus:outline-none">
+ 🔍 Reveal Reason (Context)
+ </button>
+ <div id="contextSection" class="mt-4 p-4 bg-gray-50 border border-gray-300 rounded-lg whitespace-pre-wrap hidden max-h-64 overflow-auto text-sm font-mono text-gray-700">
+{{ context }}
+ </div>
+ </div>
+{% endif %}
+ </div>
+</div>
+
+ <script>
+// Toggle context functionality
+const btn = document.getElementById("toggleContextBtn");
+const context = document.getElementById("contextSection");
+if (btn && context) {
+ btn.addEventListener("click", () => {
+ if (context.classList.contains("hidden")) {
+ context.classList.remove("hidden");
+ btn.textContent = "🔍 Hide Reason (Context)";
+ } else {
+ context.classList.add("hidden");
+ btn.textContent = "🔍 Reveal Reason (Context)";
+ }
+ });
+}
+
+// Enter key submission functionality
+const questionInput = document.getElementById("questionInput");
+const chatForm = document.getElementById("chatForm");
+
+if (questionInput && chatForm) {
+ questionInput.addEventListener("keydown", function(event) {
+ // Submit on Enter, but allow Shift+Enter for new lines
+ if (event.key === "Enter" && !event.shiftKey) {
+ event.preventDefault();
+ chatForm.submit();
+ }
+ });
+}
+ </script>
+</body>
+</html>

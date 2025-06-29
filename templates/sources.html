@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Source Search | MarketGPT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+  <!-- Add this navigation bar to your existing templates (report.html, sources.html, chat.html) -->
+<nav style="background: #1a202c; padding: 1rem 0; margin-bottom: 2rem;">
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+      <div style="display: flex; gap: 2rem; align-items: center;">
+          <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
+          <div style="display: flex; gap: 1rem;">
+              <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
+              <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
+              <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
+              <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
+          </div>
+      </div>
+  </div>
+</nav>
+
+<style>
+nav a:hover {
+  background: #2d3748 !important;
+  color: white !important;
+}
+</style>
+  <div class="max-w-4xl mx-auto py-10 px-6">
+    <h1 class="text-3xl font-bold mb-6 text-blue-700">🔍 Source Search — MarketGPT</h1>
+
+    <form method="POST" class="mb-8">
+      <input name="query" type="text" placeholder="Search for news..." value="{{ query }}" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+      <button type="submit" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Search</button>
+    </form>
+
+    {% if results %}
+      <div class="space-y-6">
+        {% for item in results %}
+          <div class="p-5 bg-white shadow rounded border border-gray-200">
+            <h2 class="text-xl font-semibold text-blue-600">
+              <a href="{{ item.link }}" target="_blank" class="hover:underline">{{ item.title }}</a>
+            </h2>
+            <p class="text-sm text-gray-500 mb-2">🗓️ {{ item.published }}</p>
+            <p class="text-gray-700">{{ item.snippet }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% elif query %}
+      <p class="text-gray-500">No results found for "{{ query }}".</p>
+    {% endif %}
+  </div>
+</body>
+</html>

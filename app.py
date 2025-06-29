@@ -1,0 +1,727 @@
+# app.py
+# import Markup
+from apscheduler.schedulers.background import BackgroundScheduler
+from chromadb.config import Settings
+from collections import defaultdict
+from datetime import datetime
+from dateutil import parser as date_parser
+from flask import Flask, jsonify
+from flask import render_template_string
+from flask import request, render_template
+from markupsafe import Markup
+from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from zoneinfo import ZoneInfo
+import chromadb
+import feedparser
+import json
+import markdown
+import numpy as np
+import os
+import os
+import random
+import re
+import requests
+import sys
+import threading
+import time
+import time
+import time
+import trafilatura
+import uuid
+
+
+#today_str = datetime.now().strftime("%Y-%m-%d")
+today_str = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+
+app = Flask(__name__)
+
+# Setup Chroma
+client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma"))
+collection = client.get_or_create_collection(name="marketwatch")
+recommendations_collection = client.get_or_create_collection(name="stock_recommendations")
+
+
+# SentenceTransformer model
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+feed_urls = [
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15837362",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19832390",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19794221",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839135",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100370673",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000113",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000108",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000115",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001054",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19836768",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000110",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000116",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000739",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=44877279",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=103395579",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664"
+    # add more RSS URLs here
+]
+
+def fetch_full_article(url):
+    try:
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded:
+            return trafilatura.extract(downloaded, include_comments=False, include_tables=False)
+    except Exception as e:
+        print(f"[fetch_full_article] Error fetching {url}: {e}")
+    return None
+
+
+def fetch_rss_multiple(feed_urls):
+    all_entries = []
+    for url in feed_urls:
+        parsed_feed = feedparser.parse(url)
+        entries = parsed_feed.entries
+        print(f"[fetch_rss_multiple] Fetched {len(entries)} entries from {url}")
+        all_entries.extend(entries)
+    return all_entries
+
+
+def embed_text(texts):
+    return model.encode(texts).tolist()
+
+def fetch_and_store(feed_urls, delay_between=1.0):
+    print("[fetch_and_store] Starting fetch...")
+
+    entries = fetch_rss_multiple(feed_urls)
+    total = len(entries)
+    added = 0
+
+    print(f"[fetch_and_store] Total {total} entries fetched from all RSS feeds.")
+
+    for i, entry in enumerate(entries, 1):
+        title = entry.get("title", "")
+        summary = entry.get("summary", "")
+        link = entry.get("link", "")
+        if not link:
+            print(f"[{i}/{total}] Skipping entry with missing link.")
+            continue  # skip malformed entry
+        published = entry.get("published") or entry.get("pubDate") or ""
+        published_date = ""
+
+        if published:
+            try:
+                parsed = date_parser.parse(published)
+                published_date = parsed.strftime("%Y-%m-%d")
+            except Exception as e:
+                print(f"[{i}/{total}] Failed to parse published date: {published}")
+
+        # Skip if already in DB
+        existing = collection.get(where={"link": link})
+        if existing["ids"]:
+            print(f"[{i}/{total}] Skipping already stored link: {link}")
+            continue
+
+        print(f"[{i}/{total}] Fetching full article from: {link}")
+        # Fetch full article
+        full_article = fetch_full_article(link)
+        if full_article and len(full_article) > 200:
+            text = f"{title}. {full_article}"
+            print(f"[{i}/{total}] Using full article content (length={len(full_article)})")
+        else:
+            text = f"{title}. {summary}"
+            print(f"[{i}/{total}] Using summary content (length={len(summary)})")
+
+        embedding = embed_text([text])[0]
+        doc_id = str(uuid.uuid4())
+
+        collection.add(
+            documents=[text],
+            embeddings=[embedding],
+            ids=[doc_id],
+            metadatas=[{
+                "link": link,
+                "published": published,
+                "published_date": published_date,
+                "title": title,
+                "source": "rss",
+                "length": len(text)
+            }]
+        )
+
+        added += 1
+        print(f"[{i}/{total}] Added document id={doc_id} to collection.")
+
+        # Delay to throttle
+        time.sleep(delay_between + random.uniform(0, 0.5))  # jitter helps mimic natural behavior
+
+    print(f"[fetch_and_store] Inserted {added} new entries into the database.")
+
+
+
+@app.route("/report")
+def view_market_report():
+    if not os.path.exists("market_report.md"):
+        return "Report not found.", 404
+
+    with open("market_report.md", "r", encoding="utf-8") as f:
+        md_content = f.read()
+
+    # Convert markdown to HTML
+    html_content = markdown.markdown(
+        md_content,
+        extensions=["extra", "toc", "sane_lists"]
+    )
+
+    return render_template("report.html", report_html=html_content)
+
+@app.route("/sources", methods=["GET", "POST"])
+def sources():
+    results = []
+    query = ""
+    if request.method == "POST":
+        query = request.form["query"]
+        embedding = embed_text([query])[0]
+        search_results = collection.query(
+            query_embeddings=[embedding],
+            n_results=15,
+            include=["documents", "metadatas"]
+        )
+        docs = search_results["documents"][0]
+        metas = search_results["metadatas"][0]
+        print(f"[sources] Found {len(docs)} results for query: {query}")
+
+        for doc, meta in zip(docs, metas):
+            results.append({
+                "title": meta.get("title", "No title"),
+                "link": meta.get("link", "#"),
+                "published": meta.get("published", "Unknown date"),
+                "snippet": doc[:300] + "..." # Truncate long text
+            })
+        print(f"[sources] Processed {len(results)} results.")
+
+        # Sort by published date (newest first)
+        from datetime import datetime
+
+        # Function to parse date strings
+        def parse_date(date_str):
+            if date_str == "Unknown date":
+                return datetime.min  # Put unknown dates at the end
+            try:
+                # RFC 2822 format: Wed, 25 Jun 2025 15:05:02 GMT
+                return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %Z")
+            except ValueError:
+                try:
+                    # Try other common formats as fallback
+                    for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y", "%m/%d/%Y"]:
+                        try:
+                            return datetime.strptime(date_str, fmt)
+                        except ValueError:
+                            continue
+                    # If none work, try parsing ISO format
+                    return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                except:
+                    return datetime.min  # Fallback for unparseable dates
+
+        # Sort results by published date descending
+        results.sort(key=lambda x: parse_date(x["published"]), reverse=True)
+
+    return render_template("sources.html", query=query, results=results)
+
+@app.route("/ask", methods=["GET", "POST"])
+def ask():
+    if request.method == "POST":
+        user_input = request.form["question"]
+        embedding = embed_text([user_input])[0]
+
+        # Pull more entries than needed for sorting
+        results = collection.query(
+            query_embeddings=[embedding],
+            n_results=25,  # Pull extra so we can sort by date
+            include=["documents", "metadatas"]
+        )
+
+        docs = results["documents"][0]
+        metas = results["metadatas"][0]
+
+        # Pair up and sort by parsed publish date descending
+        combined = []
+        for doc, meta in zip(docs, metas):
+            published_str = meta.get("published_date")
+            try:
+                published_dt = date_parser.parse(published_str) if published_str else datetime.min
+            except Exception:
+                published_dt = datetime.min
+            combined.append((published_dt, doc, meta))
+
+        # Sort by date and select top 5
+        top_articles = sorted(combined, key=lambda x: x[0], reverse=True)[:5]
+        docs = [x[1] for x in top_articles]
+        metas = [x[2] for x in top_articles]
+
+        today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+        # Format context
+        context_items = []
+        for doc, meta in zip(docs, metas):
+            title = meta.get("title", "No title")
+            link = meta.get("link", "#")
+            published = meta.get("published_date") or "Unknown"
+            context_items.append(f"[{title}]({link}) (Published: {published}): {doc}")
+        context = "\n\n---\n\n".join(context_items)
+
+        # Prepare LLM prompt
+        messages = [
+            {
+                "role": "system",
+                "content": f"""You are MarketGPT, an expert financial news assistant.
+Always consider the publish date of news sources when generating responses.
+Today is {today_str}. If a source is old, do not base predictions on it.
+Cite all sources using [markdown links](http://example.com/markdown-links). 
+Be concise, professional, and current.
+Don't make up information or provide opinions.
+If you don't know the answer, say "I don't know" instead of guessing."""
+            },
+            {
+                "role": "user",
+                "content": f"""Here is relevant news context (title, URL, publish date, and content):
+
+{context}
+
+Please answer this question:
+
+{user_input}
+"""
+            }
+        ]
+
+        # Call LLM
+        response = requests.post(
+            "http://192.168.1.220:1234/v1/chat/completions",
+            json={
+                "messages": messages,
+                "temperature": 0.7,
+            }
+        )
+
+        raw_answer = response.json()["choices"][0]["message"]["content"]
+        cleaned_answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE)
+        rendered_answer = Markup(markdown.markdown(cleaned_answer))
+
+        reveal_reason_text = "\n\n---\n\n".join([
+            f"{meta.get('title', 'No title')} ({meta.get('link', '#')}) - Published: {meta.get('published_date', 'Unknown')}\n\n{doc}"
+            for doc, meta in zip(docs, metas)
+        ])
+
+        return render_template("chat.html", question=user_input, answer=rendered_answer, context=reveal_reason_text)
+
+    return render_template("chat.html")
+
+
+# Your categories and example phrases (copy from previous message)
+CATEGORIES = {
+    "Interest Rates and Market Signals": [
+        "Federal Reserve interest rate decision",
+        "Inflation report and CPI data",
+        "Central bank monetary policy update",
+        "Interest rate hike or pause",
+        "Market reaction to bond yields"
+    ],
+    "Index News and Updates": [
+        "S&P 500 index performance",
+        "Nasdaq technology sector rally",
+        "Dow Jones industrial average movement",
+        "Stock market index closing",
+        "ETF inflows and outflows"
+    ],
+    "Sector News and Updates": [
+        "Energy sector earnings report",
+        "Technology industry innovation",
+        "Healthcare stocks update",
+        "Financial sector regulatory changes",
+        "Industrial production growth"
+    ],
+    "Bonds and Yields, Fixed Income": [
+        "Treasury yield curve analysis",
+        "Corporate bond credit spreads",
+        "Fixed income market trends",
+        "Long-term bond yields rise",
+        "Government bond auction results"
+    ],
+    "New Products, Disruption, Growth and Strength": [
+        "Initial public offering announcement",
+        "Artificial intelligence innovation",
+        "Electric vehicle market growth",
+        "Biotech breakthrough development",
+        "Record earnings and expansion plans"
+    ],
+    "Traditional Markets, Weakness": [
+        "Retail sector slowdown",
+        "Company layoffs and restructuring",
+        "Missed earnings estimates",
+        "Bankruptcy filings in retail",
+        "Real estate market weakness"
+    ],
+    "Global Markets, China": [
+        "China economic stimulus measures",
+        "European Central Bank policy update",
+        "Japan stock market trends",
+        "Global trade tensions and tariffs",
+        "Emerging markets currency fluctuations"
+    ],
+}
+
+def generate_market_report(collection, model: SentenceTransformer, top_k=10, output_path="market_report.md"):
+    report_lines = ["# MarketGPT Weekly Report\n"]
+
+    # 1. Compute centroid embeddings for each category
+    category_centroids = {}
+    for cat, phrases in CATEGORIES.items():
+        phrase_embeds = model.encode(phrases)
+        centroid = np.mean(phrase_embeds, axis=0)
+        category_centroids[cat] = centroid
+
+    # 2. Query docs for each category by similarity
+    for category, centroid in category_centroids.items():
+        # Query chroma with centroid embedding
+        results = collection.query(
+            query_embeddings=[centroid.tolist()],
+            n_results=top_k,
+            include=["documents", "metadatas"],
+            where={"published_date": today_str}
+            )
+
+
+        docs = results["documents"][0]
+        metas = results["metadatas"][0]
+
+        if not docs:
+            report_lines.append(f"## {category}\n_No relevant news found._\n")
+            continue
+
+        report_lines.append(f"## {category}\n")
+        for i, (doc, meta) in enumerate(zip(docs, metas), 1):
+            title = meta.get("title", "No title")
+            link = meta.get("link", "#")
+            published = meta.get("published", "Unknown date")
+
+
+            report_lines.append(f"{i}. [{title}]({link})  \n Published: {published}\n")
+        report_lines.append("\n---\n")
+
+    # 3. Save markdown report
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(report_lines))
+
+    print(f"[generate_market_report] Report saved to {output_path}")
+
+def extract_stock_recommendations(collection, model, today_str):
+    """
+    Read today's news and extract buy/sell recommendations for stocks
+    """
+    print(f"[extract_stock_recommendations] Analyzing news for {today_str}")
+
+    # Get all today's articles
+    today_articles = collection.get(
+        where={"published_date": today_str},
+        include=["documents", "metadatas"]
+    )
+
+    if not today_articles["documents"]:
+        print("[extract_stock_recommendations] No articles found for today")
+        return
+
+    docs = today_articles["documents"]
+    metas = today_articles["metadatas"]
+
+    # Batch process articles to avoid too many API calls
+    batch_size = 5
+    all_recommendations = []
+
+    for i in range(0, len(docs), batch_size):
+        batch_docs = docs[i:i+batch_size]
+        batch_metas = metas[i:i+batch_size]
+
+        # Prepare context for LLM
+        context_items = []
+        for doc, meta in zip(batch_docs, batch_metas):
+            title = meta.get("title", "No title")
+            link = meta.get("link", "#")
+            context_items.append(f"Title: {title}\nURL: {link}\nContent: {doc[:1000]}")
+
+        context = "\n\n---\n\n".join(context_items)
+
+        # Prepare LLM prompt for stock analysis
+        messages = [
+            {
+                "role": "system",
+                "content": """You are a financial analyst. Analyze news articles and identify any stock buy/sell signals.
+
+Look for:
+- Company earnings beats/misses
+- Analyst upgrades/downgrades
+- New product launches or innovations
+- Regulatory approvals/rejections
+- Management changes
+- Market share gains/losses
+- Financial guidance changes
+
+Respond ONLY with a JSON array of recommendations. Each recommendation should have:
+{
+  "company": "Company Name",
+  "ticker": "STOCK_SYMBOL", 
+  "recommendation": "BUY" or "SELL",
+  "reason": "Brief reason for recommendation",
+  "confidence": "HIGH", "MEDIUM", or "LOW",
+  "article_title": "Article title",
+  "article_url": "Article URL"
+}
+
+If no clear recommendations, return empty array [].
+DO NOT include any text outside the JSON array. Especially do not include any markdown or HTML formatting like backticks. Do not explain your reasoning or provide any additional commentary. Just return the JSON array."""
+            },
+            {
+                "role": "user", 
+                "content": f"Analyze these news articles for stock recommendations:\n\n{context}"
+            }
+        ]
+
+        try:
+            # Call your local LLM
+            response = requests.post(
+                "http://192.168.1.220:1234/v1/chat/completions",
+                json={
+                    "messages": messages,
+                    "temperature": 0.3,
+                }
+            )
+
+            raw_response = response.json()["choices"][0]["message"]["content"]
+            # Clean up the response
+            # Remove any <think> tags
+            raw_response = re.sub(r"<think>.*?</think>", "", raw_response, flags=re.DOTALL | re.IGNORECASE)
+            # Remove any markdown formatting
+            raw_response = re.sub(r"```json\s*([\s\S]*?)\s*```", r"\1", raw_response)
+            # Clean up any extra whitespace
+            raw_response = raw_response.strip()
+            # Parse JSON response
+            try:
+                batch_recommendations = json.loads(raw_response)
+                if isinstance(batch_recommendations, list):
+                    all_recommendations.extend(batch_recommendations)
+            except json.JSONDecodeError as e:
+                print(f"[extract_stock_recommendations] JSON parse error: {e}")
+                print(f"Raw response: {raw_response}")
+
+        except Exception as e:
+            print(f"[extract_stock_recommendations] Error processing batch: {e}")
+
+        # Small delay between batches
+        time.sleep(2)
+
+    # Store recommendations in ChromaDB
+    store_recommendations(all_recommendations, today_str)
+    print(f"[extract_stock_recommendations] Processed {len(all_recommendations)} recommendations")
+
+def store_recommendations(recommendations, date_str):
+    """
+    Store stock recommendations in ChromaDB
+    """
+    for rec in recommendations:
+        # Create unique ID based on ticker and date
+        rec_id = f"{rec['ticker']}_{date_str}_{rec['recommendation']}"
+
+        # Check if already exists - use a simpler approach
+        # Query by the unique ID we're about to create
+        try:
+            existing = recommendations_collection.get(ids=[rec_id])
+            if existing["ids"]:
+                print(f"[store_recommendations] Recommendation already exists: {rec['ticker']} {rec['recommendation']}")
+                continue
+        except Exception as e:
+            # If ID doesn't exist, that's fine - we'll create it
+            pass
+
+        # Create embedding of the recommendation text
+        rec_text = f"{rec['company']} {rec['ticker']} {rec['recommendation']} {rec['reason']}"
+        embedding = embed_text([rec_text])[0]
+
+        # Store in collection
+        try:
+            recommendations_collection.add(
+                documents=[rec_text],
+                embeddings=[embedding],
+                ids=[rec_id],
+                metadatas=[{
+                    "company": rec["company"],
+                    "ticker": rec["ticker"],
+                    "recommendation": rec["recommendation"],
+                    "reason": rec["reason"],
+                    "confidence": rec["confidence"],
+                    "article_title": rec["article_title"],
+                    "article_url": rec["article_url"],
+                    "date": date_str,
+                    "timestamp": datetime.now().isoformat()
+                }]
+            )
+            print(f"[store_recommendations] Stored: {rec['ticker']} - {rec['recommendation']}")
+        except Exception as e:
+            print(f"[store_recommendations] Error storing recommendation: {e}")
+            # Continue with next recommendation instead of crashing
+
+def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7):
+    """
+    Retrieve stock recommendations with optional filtering
+    """
+    try:
+        # Get all recommendations first, then filter in Python
+        # ChromaDB's where clause is limited, so we'll do post-filtering
+        results = recommendations_collection.get(
+            include=["documents", "metadatas"]
+        )
+
+        # Filter results based on parameters
+        filtered_docs = []
+        filtered_metas = []
+        
+        for doc, meta in zip(results["documents"], results["metadatas"]):
+            # Apply filters
+            if ticker and meta.get("ticker") != ticker:
+                continue
+            if recommendation_type and meta.get("recommendation") != recommendation_type:
+                continue
+            
+            # You can add date filtering here if needed
+            # if days_back and is_older_than(meta.get("date"), days_back):
+            #     continue
+            
+            filtered_docs.append(doc)
+            filtered_metas.append(meta)
+
+        # Group by ticker for easier display
+        grouped_recs = defaultdict(list)
+
+        for doc, meta in zip(filtered_docs, filtered_metas):
+            ticker_key = meta["ticker"]
+            grouped_recs[ticker_key].append({
+                "company": meta["company"],
+                "recommendation": meta["recommendation"],
+                "reason": meta["reason"],
+                "confidence": meta["confidence"],
+                "article_title": meta["article_title"],
+                "article_url": meta["article_url"],
+                "date": meta["date"],
+                "timestamp": meta["timestamp"]
+            })
+
+        return dict(grouped_recs)
+    
+    except Exception as e:
+        print(f"[get_stock_recommendations] Error: {e}")
+        return {}
+
+def get_related_articles_for_stock(ticker, days_back=7):
+    """
+    Get recent articles mentioning a specific stock
+    """
+    # Search for articles mentioning the ticker
+    search_query = f"{ticker} stock shares"
+    embedding = embed_text([search_query])[0]
+
+    results = collection.query(
+        query_embeddings=[embedding],
+        n_results=20,
+        include=["documents", "metadatas"]
+    )
+
+    # Filter results that actually mention the ticker
+    relevant_articles = []
+    for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
+        if ticker.upper() in doc.upper() or ticker.lower() in meta.get("title", "").lower():
+            relevant_articles.append({
+                "title": meta.get("title", "No title"),
+                "link": meta.get("link", "#"),
+                "published_date": meta.get("published_date", "Unknown"),
+                "snippet": doc[:300] + "..."
+            })
+
+    return relevant_articles
+
+# Add this route to your Flask app
+@app.route("/recommendations")
+def view_recommendations():
+    """
+    Display stock buy/sell recommendations
+    """
+    rec_type = request.args.get("type")  # "BUY" or "SELL"
+    ticker = request.args.get("ticker")
+
+    recommendations = get_stock_recommendations(
+        ticker=ticker,
+        recommendation_type=rec_type
+    )
+
+    # Get related articles for each recommended stock
+    stock_data = {}
+    for ticker, recs in recommendations.items():
+        related_articles = get_related_articles_for_stock(ticker)
+        stock_data[ticker] = {
+            "recommendations": recs,
+            "related_articles": related_articles[:5]  # Limit to 5 most relevant
+        }
+
+    return render_template("recommendations.html",
+                            stock_data=stock_data,
+                            filter_type=rec_type,
+                            filter_ticker=ticker
+                            )
+
+
+def periodic_fetch_and_report():
+    while True:
+        try:
+            print("[fetch_and_store] Starting fetch...")
+            fetch_and_store(feed_urls)
+            print("[fetch_and_store] Fetch done. Generating report...")
+            generate_market_report(collection, model)
+            print("[fetch_and_store] Report generated. Extracting stock recommendations...")
+            extract_stock_recommendations(collection, model, today_str)
+            print("[fetch_and_store] Stock recommendations extracted.")
+            print(f"[fetch_and_store] Waiting 15 minutes. Time: {today_str}")
+            time.sleep(15 * 60)
+        except Exception as e:
+            print(f"[fetch_and_store] Error: {e}")
+            print("[fetch_and_store] Retrying in 5 seconds...")
+            time.sleep(5)
+
+
+# while True:
+#     try:
+#         print("[fetch_and_store] Starting initial fetch...")
+#         # Initial fetch and store
+#         fetch_and_store(feed_urls)
+#         print("[fetch_and_store] Initial fetch completed. Generating market report...")
+#         generate_market_report(collection, model)
+#         print("[fetch_and_store] Market report generated successfully.")
+#         # Schedule the next fetch in 15 minutes
+#         print("[fetch_and_store] Waiting for 15 minutes before next fetch...")
+#         print("Date and Time:", today_str)
+#         time.sleep(15 * 60)  # Sleep for 15 minutes
+#     except Exception as e:
+#         print(f"[fetch_and_store] Error: {e}")
+#         print("[fetch_and_store] Retrying in 5 seconds...")
+#         time.sleep(5)
+
+if __name__ == "__main__":
+    # Start background thread before Flask server
+    thread = threading.Thread(target=periodic_fetch_and_report, daemon=True)
+    thread.start()
+
+    app.run(port=5020, debug=True, host="0.0.0.0")

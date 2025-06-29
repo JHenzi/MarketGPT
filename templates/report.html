@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MarketGPT Daily Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900">
+<!-- Add this navigation bar to your existing templates (report.html, sources.html, chat.html) -->
+<nav style="background: #1a202c; padding: 1rem 0; margin-bottom: 2rem;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+        <div style="display: flex; gap: 2rem; align-items: center;">
+            <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
+            <div style="display: flex; gap: 1rem;">
+                <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
+                <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
+                <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
+                <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<style>
+nav a:hover {
+    background: #2d3748 !important;
+    color: white !important;
+}
+</style>
+    <div class="max-w-5xl mx-auto px-4 py-10">
+        <h1 class="text-4xl font-extrabold mb-10 border-b-4 border-blue-600 pb-2">
+            📈 MarketGPT Daily Report
+        </h1>
+
+        <div id="report-content" class="space-y-12">
+            {{ report_html | safe }}
+        </div>
+    </div>
+
+    <script>
+        // Enhance each H2 (section header) for styling and anchor links
+        document.querySelectorAll("#report-content h2").forEach(h2 => {
+            const id = h2.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+            h2.setAttribute("id", id);
+            h2.classList.add("text-2xl", "font-semibold", "mt-10", "mb-4", "text-blue-800", "border-b", "pb-2");
+
+            const anchor = document.createElement("a");
+            anchor.href = `#${id}`;
+            anchor.className = "text-blue-500 ml-2 text-sm";
+            anchor.textContent = "🔗";
+            h2.appendChild(anchor);
+        });
+
+        // Style each list item as a card
+        document.querySelectorAll("#report-content li").forEach(li => {
+            li.classList.add(
+                "bg-white",
+                "shadow-sm",
+                "rounded-md",
+                "p-4",
+                "my-2",
+                "border",
+                "border-gray-200",
+                "hover:shadow-md",
+                "transition-shadow"
+            );
+        });
+
+        // Fix links to look nice
+        document.querySelectorAll("#report-content a").forEach(a => {
+            a.classList.add("text-blue-600", "hover:underline", "font-medium");
+            a.setAttribute("target", "_blank");
+        });
+
+        // Format Published date line
+        document.querySelectorAll("#report-content li").forEach(li => {
+            const lines = li.innerHTML.split("Published:");
+            if (lines.length === 2) {
+                li.innerHTML = `
+                    <div class="mb-1">${lines[0].trim()}</div>
+                    <div class="text-sm text-gray-500">📅 Published: ${lines[1].trim()}</div>
+                `;
+            }
+        });
+    </script>
+
+</body>
+</html>
