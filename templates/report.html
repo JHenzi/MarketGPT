@@ -1,89 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>MarketGPT Daily Report</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+ <meta charset="UTF-8">
+ <title>MarketGPT Daily Report</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 text-gray-900">
 <!-- Add this navigation bar to your existing templates (report.html, sources.html, chat.html) -->
 <nav style="background: #1a202c; padding: 1rem 0; margin-bottom: 2rem;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
-        <div style="display: flex; gap: 2rem; align-items: center;">
-            <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
-            <div style="display: flex; gap: 1rem;">
-                <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
-                <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
-                <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
-                <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
-            </div>
-        </div>
-    </div>
+ <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+ <div style="display: flex; gap: 2rem; align-items: center;">
+ <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
+ <div style="display: flex; gap: 1rem;">
+ <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
+ <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
+ <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
+ <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
+ </div>
+ </div>
+ </div>
 </nav>
-
 <style>
 nav a:hover {
-    background: #2d3748 !important;
-    color: white !important;
+ background: #2d3748 !important;
+ color: white !important;
+}
+
+/* Card layout styles */
+.section-card {
+ background: white;
+ border-radius: 0.5rem;
+ box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+ overflow: hidden;
+ transition: box-shadow 0.3s ease;
+ margin-bottom: 1.5rem;
+}
+
+.section-card:hover {
+ box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+ background: #2563eb;
+ color: white;
+ padding: 1rem 1.5rem;
+ font-size: 1.25rem;
+ font-weight: 600;
+ border-bottom: 1px solid #e5e7eb;
+}
+
+.section-content {
+ padding: 1.5rem;
+}
+
+/* Grid layout */
+#report-content {
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+ #report-content {
+ grid-template-columns: repeat(2, 1fr);
+ }
+}
+
+@media (min-width: 1280px) {
+ #report-content {
+ grid-template-columns: repeat(3, 1fr);
+ }
 }
 </style>
-    <div class="max-w-5xl mx-auto px-4 py-10">
-        <h1 class="text-4xl font-extrabold mb-10 border-b-4 border-blue-600 pb-2">
-            📈 MarketGPT Daily Report
-        </h1>
-
-        <div id="report-content" class="space-y-12">
-            {{ report_html | safe }}
-        </div>
-    </div>
-
-    <script>
-        // Enhance each H2 (section header) for styling and anchor links
-        document.querySelectorAll("#report-content h2").forEach(h2 => {
-            const id = h2.textContent.trim().toLowerCase().replace(/\s+/g, '-');
-            h2.setAttribute("id", id);
-            h2.classList.add("text-2xl", "font-semibold", "mt-10", "mb-4", "text-blue-800", "border-b", "pb-2");
-
-            const anchor = document.createElement("a");
-            anchor.href = `#${id}`;
-            anchor.className = "text-blue-500 ml-2 text-sm";
-            anchor.textContent = "🔗";
-            h2.appendChild(anchor);
-        });
-
-        // Style each list item as a card
-        document.querySelectorAll("#report-content li").forEach(li => {
-            li.classList.add(
-                "bg-white",
-                "shadow-sm",
-                "rounded-md",
-                "p-4",
-                "my-2",
-                "border",
-                "border-gray-200",
-                "hover:shadow-md",
-                "transition-shadow"
-            );
-        });
-
-        // Fix links to look nice
-        document.querySelectorAll("#report-content a").forEach(a => {
-            a.classList.add("text-blue-600", "hover:underline", "font-medium");
-            a.setAttribute("target", "_blank");
-        });
-
-        // Format Published date line
-        document.querySelectorAll("#report-content li").forEach(li => {
-            const lines = li.innerHTML.split("Published:");
-            if (lines.length === 2) {
-                li.innerHTML = `
-                    <div class="mb-1">${lines[0].trim()}</div>
-                    <div class="text-sm text-gray-500">📅 Published: ${lines[1].trim()}</div>
-                `;
-            }
-        });
-    </script>
-
+ <div class="max-w-7xl mx-auto px-4 py-10">
+ <h1 class="text-4xl font-extrabold mb-10 border-b-4 border-blue-600 pb-2">
+ 📈 MarketGPT Daily Report
+ </h1>
+ <div id="report-content">
+{{ report_html | safe }}
+ </div>
+ </div>
+ <script>
+// Convert sections into cards
+document.addEventListener('DOMContentLoaded', function() {
+ const reportContent = document.getElementById('report-content');
+ const allChildren = Array.from(reportContent.children);
+ const sections = [];
+ let currentSection = null;
+ 
+ // Group h2 and following elements into sections
+ allChildren.forEach(child => {
+ if (child.tagName === 'H2') {
+ if (currentSection) {
+ sections.push(currentSection);
+ }
+ currentSection = {
+ title: child.textContent.trim(),
+ content: []
+ };
+ } else if (currentSection) {
+ currentSection.content.push(child);
+ }
+ });
+ 
+ if (currentSection) {
+ sections.push(currentSection);
+ }
+ 
+ // Clear and rebuild as cards
+ reportContent.innerHTML = '';
+ 
+ sections.forEach(section => {
+ // Create card container
+ const card = document.createElement('div');
+ card.className = 'section-card';
+ 
+ // Create header
+ const header = document.createElement('div');
+ header.className = 'section-header';
+ 
+ // Add anchor link
+ const id = section.title.toLowerCase().replace(/\s+/g, '-');
+ header.id = id;
+ header.innerHTML = `${section.title} <a href="#${id}" class="text-blue-200 hover:text-white ml-2 text-sm">🔗</a>`;
+ 
+ // Create content area
+ const content = document.createElement('div');
+ content.className = 'section-content';
+ 
+ // Add all content elements
+ section.content.forEach(element => {
+ content.appendChild(element);
+ });
+ 
+ // Assemble card
+ card.appendChild(header);
+ card.appendChild(content);
+ reportContent.appendChild(card);
+ });
+ 
+ // Apply your existing styling
+ // Style each list item as a card
+ document.querySelectorAll("#report-content li").forEach(li => {
+ li.classList.add(
+"bg-gray-50",
+"shadow-sm",
+"rounded-md",
+"p-4",
+"my-2",
+"border",
+"border-gray-200",
+"hover:bg-gray-100",
+"transition-all"
+ );
+ });
+ 
+ // Fix links to look nice
+ document.querySelectorAll("#report-content a:not([href^='#'])").forEach(a => {
+ a.classList.add("text-blue-600", "hover:underline", "font-medium");
+ a.setAttribute("target", "_blank");
+ });
+ 
+ // Format Published date line
+ document.querySelectorAll("#report-content li").forEach(li => {
+const lines = li.innerHTML.split("Published:");
+if (lines.length === 2) {
+ li.innerHTML = `
+ <div class="mb-1">${lines[0].trim()}</div>
+ <div class="text-sm text-gray-500">📅 Published: ${lines[1].trim()}</div>
+ `;
+ }
+ });
+});
+ </script>
 </body>
 </html>
