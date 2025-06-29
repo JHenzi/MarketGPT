@@ -4,6 +4,8 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 
 ## ✨ Features
 
+![Recommendations](/images/recommendations.png)
+
 - **Automated News Aggregation**: Fetches the latest news from multiple financial RSS feeds (e.g., CNBC).
 - **AI-Powered Summarization**: Uses a local LLM to summarize articles and reduce information overload.
 - **Vector-Based Semantic Search**: Stores articles in a ChromaDB vector database, allowing users to search for news based on concepts, not just keywords.
@@ -18,13 +20,13 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 
 The application follows a multi-step pipeline:
 
-1.  **Fetch**: A background process periodically scrapes RSS feeds for new articles.
-2.  **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database.
-3.  **Analyze & Summarize**:
-    - Another background process identifies articles that haven't been summarized and uses a local LLM to generate a concise summary, which is then saved back to the database.
-    - A separate process analyzes the day's news to extract and store stock recommendations.
-4.  **Generate Report**: The system uses vector search to find the most relevant articles for predefined market categories and compiles them into a markdown report.
-5.  **Serve**: A **Flask** web server provides the frontend, answering user requests by querying the ChromaDB database and interacting with the LLM for the Q&A feature.
+1. **Fetch**: A background process periodically scrapes RSS feeds for new articles.
+2. **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database.
+3. **Analyze & Summarize**:
+   - Another background process identifies articles that haven't been summarized and uses a local LLM to generate a concise summary, which is then saved back to the database.
+   - A separate process analyzes the day's news to extract and store stock recommendations.
+4. **Generate Report**: The system uses vector search to find the most relevant articles for predefined market categories and compiles them into a markdown report.
+5. **Serve**: A **Flask** web server provides the frontend, answering user requests by querying the ChromaDB database and interacting with the LLM for the Q&A feature.
 
 ---
 
@@ -64,9 +66,9 @@ pip install -r requirements.txt
 
 The application needs to know the address of your local LLM server. This is hardcoded in the source.
 
-1.  Start your local LLM server (e.g., LM Studio). Make sure you are serving a model compatible with chat completions.
-2.  Note the server URL (e.g., `http://192.168.1.220:1234`).
-3.  Open `app.py` and `summarize.py` and update the hardcoded `http://192.168.1.220:1234/v1/chat/completions` URL to match your LLM server's address.
+1. Start your local LLM server (e.g., LM Studio). Make sure you are serving a model compatible with chat completions.
+2. Note the server URL (e.g., `http://192.168.1.220:1234`).
+3. Open `app.py` and `summarize.py` and update the hardcoded `http://192.168.1.220:1234/v1/chat/completions` URL to match your LLM server's address.
 
 ### 4. Run the Application
 
