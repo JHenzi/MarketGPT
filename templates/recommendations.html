@@ -372,6 +372,7 @@
                                         </div>
                                     {% endif %}
                                 </div>
+                                <button class="stop-watching-btn" data-ticker="{{ ticker }}" data-rec-id="{{ rec.recommendation }}_{{ rec.date }}">Stop Watching</button>
                             </div>
 
                             <div class="recommendations-list">
@@ -414,5 +415,53 @@
             <p>Check back later as the system analyzes more news articles.</p>
         </div>
     {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttons = document.querySelectorAll('.stop-watching-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const ticker = this.dataset.ticker;
+                    const recId = this.dataset.recId; // Format: "RECOMMENDATIONTYPE_YYYY-MM-DD"
+
+                    if (!ticker || !recId) {
+                        alert('Error: Missing data for deletion.');
+                        return;
+                    }
+
+                    if (confirm(`Are you sure you want to stop watching ${ticker}? This might remove the specific recommendation or all recommendations for this stock.`)) {
+                        fetch('/recommendations/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ ticker: ticker, rec_id: recId }),
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success' || data.status === 'info') {
+                                alert(data.message);
+                                // Remove the card from the DOM
+                                // This button is inside a .stock-header, which is inside .stock-card
+                                const card = this.closest('.stock-card');
+                                if (card) {
+                                    card.remove();
+                                } else {
+                                    // Fallback if structure changes, less ideal: just reload
+                                    window.location.reload();
+                                }
+                            } else {
+                                alert(`Error: ${data.message}`);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                            alert('An error occurred while trying to stop watching the stock.');
+                        });
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
