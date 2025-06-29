@@ -291,6 +291,29 @@
             background: #2d3748;
             color: white;
         }
+        .stock-card.hold {
+            border-left-color: #f59e0b; /* amber-500 */
+        }
+        
+        .badge-hold {
+            background: #fef3c7; /* amber-100 */
+            color: #92400e;       /* amber-800 */
+        }
+        .stop-watching-btn {
+            background: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }
+        
+        .stop-watching-btn:hover {
+            background: #667eea;
+            color: white;
+        
     </style>
 </head>
 <body>
@@ -318,6 +341,7 @@
             <a href="/recommendations" class="filter-btn {{ 'active' if not filter_type else '' }}">All</a>
             <a href="/recommendations?type=BUY" class="filter-btn {{ 'active' if filter_type == 'BUY' else '' }}">Buy Signals</a>
             <a href="/recommendations?type=SELL" class="filter-btn {{ 'active' if filter_type == 'SELL' else '' }}">Sell Signals</a>
+            <a href="/recommendations?type=HOLD" class="filter-btn {{ 'active' if filter_type == 'HOLD' else '' }}">Hold Signals</a>
         </div>
     </div>
 
