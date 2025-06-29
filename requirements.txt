@@ -1,0 +1,19 @@
+apscheduler
+chromadb
+dateutils
+feedparser
+Flask
+markdown
+markupsafe
+numpy
+requests
+scikit-learn
+sentence-transformers
+trafilatura
+
+# The following are often dependencies of the above packages,
+# but it's good practice to list them if you rely on specific versions.
+# For now, we'll let pip resolve them.
+# torch
+# torchvision
+# torchaudio
