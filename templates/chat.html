@@ -14,7 +14,8 @@
 <div class="main-content-area flex-1 flex items-center justify-center px-4"> <!-- Added main-content-area -->
  <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-8"> <!-- Changed max-w-2xl to max-w-4xl -->
  <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">🧠 MarketGPT Agent</h1>
- <form method="POST" class="space-y-4" id="chatForm">
+ <form method="POST" action="/ask" class="space-y-4" id="chatForm">
+
  <textarea
  name="question"
  id="questionInput"
@@ -29,6 +30,13 @@
  >
  Ask
  </button>
+ <div id="loadingIndicator" class="hidden text-center text-gray-600 mt-4">
+    <svg class="animate-spin h-5 w-5 inline-block mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 000 16z"></path>
+    </svg>
+    Generating response…
+  </div>  
  </div>
  </form>
 {% if answer %}
@@ -75,7 +83,16 @@ if (questionInput && chatForm) {
  // Submit on Enter, but allow Shift+Enter for new lines
  if (event.key === "Enter" && !event.shiftKey) {
  event.preventDefault();
- chatForm.submit();
+ // Disable textarea and button
+questionInput.disabled = true;
+chatForm.querySelector("button[type='submit']").disabled = true;
+
+// Show loading indicator
+document.getElementById("loadingIndicator").classList.remove("hidden");
+
+// Submit form
+chatForm.submit();
+
  }
  });
 }

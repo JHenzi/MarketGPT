@@ -302,7 +302,11 @@ def sources():
 @app.route("/ask", methods=["GET", "POST"])
 def ask():
     if request.method == "POST":
-        user_input = request.form["question"]
+        user_input = request.form.get("question", "").strip()
+        if not user_input:
+            return render_template("chat.html", error="Please enter a question.")
+
+        # Embed user input
         embedding = embed_text([user_input])[0]
 
         # Pull more entries than needed for sorting
@@ -390,7 +394,8 @@ Please answer this question:
 
         return render_template("chat.html", question=user_input, answer=rendered_answer, context=reveal_reason_text)
 
-    return render_template("chat.html")
+    return render_template("chat.html", question="", answer="", context="")
+
 
 
 # Your categories and example phrases (copy from previous message)
