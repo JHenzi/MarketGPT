@@ -1,5 +1,5 @@
 {
-    "provider": "local", // Options: "local", "openai", "claude"
+    "provider": "local",
     "endpoint": "http://localhost:1234/v1/chat/completions",
     "api_key": null
 }
