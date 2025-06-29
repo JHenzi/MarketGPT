@@ -39,6 +39,10 @@ The application follows a multi-step pipeline:
   - Access to an OpenAI or Anthropic Claude API (and an API key).
   - Or, a local LLM server (e.g., LM Studio, Ollama) that provides an OpenAI-compatible API endpoint.
 
+#### Tested Environment:
+
+Tested on a Mac Mini M1 (2020). A miniconda install of Python. I'm personally not using a virtual environment, I've given up on this machine's install for now. I'm running [LM Studio](https://lmstudio.ai "LM Studio, AI toolkit"), and have found the [Gemma 3 4B ](https://huggingface.co/google/gemma-3-4b-it-qat-q4_0-gguf "Gemma 3 4B IT QAT")model to work sufficiently well.
+
 ### 1. Clone the Repository
 
 ```bash
