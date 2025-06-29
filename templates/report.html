@@ -54,26 +54,49 @@ nav a:hover {
  padding: 1.5rem;
 }
 
-/* Grid layout */
+/* Flexible grid layout that fits as many columns as possible */
 #report-content {
  display: grid;
  grid-template-columns: 1fr;
  gap: 1.5rem;
 }
 
-@media (min-width: 768px) {
+/* Mobile: Single column */
+@media (min-width: 640px) {
  #report-content {
- grid-template-columns: repeat(2, 1fr);
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
  }
 }
 
+/* Tablet and up: Auto-fit with minimum column width */
+@media (min-width: 768px) {
+ #report-content {
+ grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+ }
+}
+
+/* Desktop: Smaller minimum width to fit more columns */
+@media (min-width: 1024px) {
+ #report-content {
+ grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+ }
+}
+
+/* Large desktop: Even smaller minimum to maximize columns */
 @media (min-width: 1280px) {
  #report-content {
- grid-template-columns: repeat(3, 1fr);
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+ }
+}
+
+/* Extra large screens: Optimize for maximum density */
+@media (min-width: 1536px) {
+ #report-content {
+ grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
  }
 }
 </style>
- <div class="max-w-7xl mx-auto px-4 py-10">
+ <div class="w-full px-4 py-10">
  <h1 class="text-4xl font-extrabold mb-10 border-b-4 border-blue-600 pb-2">
  📈 MarketGPT Daily Report
  </h1>
@@ -108,6 +131,8 @@ document.addEventListener('DOMContentLoaded', function() {
  sections.push(currentSection);
  }
  
+ // Only rebuild if we found H2 sections (preserve demo content otherwise)
+ if (sections.length > 0) {
  // Clear and rebuild as cards
  reportContent.innerHTML = '';
  
@@ -139,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
  card.appendChild(content);
  reportContent.appendChild(card);
  });
+ }
  
  // Apply your existing styling
  // Style each list item as a card
