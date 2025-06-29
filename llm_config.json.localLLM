@@ -1,6 +1,5 @@
 {
     "provider": "local", // Options: "local", "openai", "claude"
     "endpoint": "http://localhost:1234/v1/chat/completions",
-    "model": "default",
     "api_key": null
 }
