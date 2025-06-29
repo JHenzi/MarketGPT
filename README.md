@@ -30,11 +30,13 @@ The application follows a multi-step pipeline:
 
 ## Known Issues/Bugs
 
-The Market Report is not outputing anything! There is a key error when we add a where. clause for today's date. Removing it still doesn't generate a file. Unsure when and how this broke but worth refactoring the entire code here.
+~~The Market Report is not outputing anything! There is a key error when we add a where. clause for today's date. Removing it still doesn't generate a file. Unsure when and how this broke but worth refactoring the entire code here.~~
 
-- [ ] Fix Market Report Generation Function
+- [x] Fix Market Report Generation Function
 
 ~~We need a "/" route.~~
+
+- [x] Add "/" route
 
 ---
 

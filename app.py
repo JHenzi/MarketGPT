@@ -446,62 +446,228 @@ CATEGORIES = {
     ],
 }
 
-def generate_market_report(collection, model: SentenceTransformer, top_k=10, output_path="market_report.md"):
+def generate_market_report(collection, model, top_k=10, output_path="market_report.md", today_str=None):
+    """
+    Generate market report by first fetching all today's articles, then classifying them
+    using sentence transformers similarity scoring.
+    """
     report_lines = ["# MarketGPT Daily Report\n"]
-    seen_article_links = set()  # Track which articles have already been included
 
-    for category, phrases in CATEGORIES.items():
-        # Use the first phrase as the representative embedding query
-        topic_query = phrases[0]
-        embedding = model.encode([topic_query])[0]
+    try:
+        # First, try to get all articles for today without any vector search
+        # This avoids the hnswlib KeyError issue
+        if today_str:
+            try:
+                # Attempt to fetch with date filter
+                all_results = collection.get(
+                    where={"published_date": today_str},
+                    include=["documents", "metadatas"]
+                )
+            except Exception as e:
+                print(f"[WARNING] Date filtering failed: {e}")
+                print("Falling back to fetching all articles...")
+                # Fallback: get all articles if date filtering fails
+                all_results = collection.get(include=["documents", "metadatas"])
+        else:
+            # Get all articles if no date specified
+            all_results = collection.get(include=["documents", "metadatas"])
+        print(f"[generate_market_report] Fetched {len(all_results['documents'])} articles from collection.")
+        if not all_results["documents"]:
+            print("[WARNING] No articles found in database")
+            report_lines.append("_No articles found in database._\n")
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(report_lines))
+            return
+        # Combine documents and metadata
+        articles = list(zip(all_results["documents"], all_results["metadatas"]))
+        print(f"[INFO] Found {len(articles)} total articles")
+        if not articles:
+            report_lines.append("_No articles found for today._\n")
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(report_lines))
+            return
+        # Filter by date if we couldn't do it in the query
+        if today_str and not any(meta.get("published_date") == today_str for _, meta in articles):
+            print(f"[INFO] Filtering articles by date: {today_str}")
+            articles = [(doc, meta) for doc, meta in articles 
+                if meta.get("published_date") == today_str]
+            print(f"[INFO] After date filtering: {len(articles)} articles")
 
-        results = collection.query(
-            query_embeddings=[embedding.tolist()],
-            n_results=top_k * 3,  # Fetch more to allow for filtering/deduplication
-            include=["documents", "metadatas"],
-            where={"published_date": today_str}
-            # This needs fixed!
-            # TODO: Fix the date filtering - we are getting null results. Maybe this whole function and page need to be rewritten.
-            # We are getting a key error when querying by date, some indexing issue.
-            # Some online suggestions are to use a newer version of ChromaDB.
-        )
+        if not articles:
+            report_lines.append("_No matching articles found for today._\n")
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(report_lines))
+            return
 
-        docs = results["documents"][0]
-        metas = results["metadatas"][0]
+        # Pre-compute embeddings for all category phrases
+        category_embeddings = {}
+        all_phrases = []
+        phrase_to_category = {}
 
-        articles_for_category = []
-        for doc, meta in zip(docs, metas):
-            link = meta.get("link")
-            if not link or link in seen_article_links:
+        for category, phrases in CATEGORIES.items():
+            for phrase in phrases:
+                all_phrases.append(phrase)
+                phrase_to_category[phrase] = category
+
+        print("[INFO] Computing category embeddings...")
+        phrase_embeddings = model.encode(all_phrases)
+
+        for i, phrase in enumerate(all_phrases):
+            category = phrase_to_category[phrase]
+            if category not in category_embeddings:
+                category_embeddings[category] = []
+            category_embeddings[category].append(phrase_embeddings[i])
+
+        # Average embeddings for each category
+        for category in category_embeddings:
+            category_embeddings[category] = np.mean(category_embeddings[category], axis=0)
+        print(f"[INFO] Computed embeddings for {len(category_embeddings)} categories")
+        # Compute embeddings for all articles
+        print("[INFO] Computing article embeddings...")
+        article_texts = [doc for doc, _ in articles]
+        article_embeddings = model.encode(article_texts)
+        print(f"[INFO] Computed embeddings for {len(article_embeddings)} articles")
+        # Classify articles into categories
+        categorized_articles = defaultdict(list)
+        seen_links = set()
+        print("[INFO] Initializing categorized articles...")
+        print("[INFO] Classifying articles...")
+        for i, (doc, meta) in enumerate(articles):
+            link = meta.get("link", "")
+            if link in seen_links:
                 continue
-
-            # Optional: apply keyword filter for extra precision
-            if not any(keyword.lower() in doc.lower() for keyword in phrases):
+            print(f"[{i+1}/{len(articles)}] Classifying article: {meta.get('title', 'No title')} ({link})")
+            # Find best matching category
+            best_category = None
+            best_similarity = -1
+            # Reshape article embedding for cosine similarity
+            article_embedding = article_embeddings[i].reshape(1, -1)
+            # Compare with each category embedding
+            for category, cat_embedding in category_embeddings.items():
+                similarity = cosine_similarity(
+                    article_embedding, 
+                    cat_embedding.reshape(1, -1)
+                )[0][0]
+                print(f"[{i+1}/{len(articles)}] Similarity with category '{category}': {similarity:.3f}")
+                if similarity > best_similarity:
+                    best_similarity = similarity
+                    best_category = category
+            # If no category matched, skip this article
+            # Only include if similarity is above a threshold (adjust as needed)
+            if best_similarity > 0.3:  # Adjust threshold as needed
+                categorized_articles[best_category].append((doc, meta, best_similarity))
+                seen_links.add(link)
+        print(f"[INFO] Classified articles into {len(categorized_articles)} categories")
+        # Generate report
+        for category in CATEGORIES.keys():
+            articles_for_category = categorized_articles.get(category, [])
+            if not articles_for_category:
+            # Sort by similarity score (descending)
+                articles_for_category.sort(key=lambda x: x[2], reverse=True)
+            # If no articles matched this category, skip it
+            # Limit to top_k articles
+            articles_for_category = articles_for_category[:top_k]
+            print(f"[INFO] Found {len(articles_for_category)} articles for category '{category}'")
+            if not articles_for_category:
+                report_lines.append(f"## {category}\n_No matching articles found for today._\n---\n")
                 continue
+            # Add category header
+            report_lines.append(f"## {category}\n")
+            for i, (doc, meta, similarity) in enumerate(articles_for_category, 1):
+                title = meta.get("title", "No title")
+                link = meta.get("link", "#")
+                published = meta.get("published", "Unknown date")
+                # Optionally include similarity score for debugging
+                # report_lines.append(f"{i}. [{title}]({link}) (similarity: {similarity:.3f})  \nPublished: {published}\n")
+                report_lines.append(f"{i}. [{title}]({link})  \nPublished: {published}\n")
+            report_lines.append("\n---\n")
 
-            articles_for_category.append((doc, meta))
-            seen_article_links.add(link)
+        # Save the final markdown report
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(report_lines))
+        # Print success message
+        print(f"[generate_market_report] Report saved to {output_path}")
 
-            if len(articles_for_category) >= top_k:
-                break
+    except Exception as e:
+        print(f"[ERROR] Failed to generate report: {e}")
+        report_lines.append(f"_Error generating report: {e}_\n")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(report_lines))
 
-        if not articles_for_category:
-            report_lines.append(f"## {category}\n_No matching articles found for today._\n---\n")
-            continue
+# Alternative simpler approach if the above is still too complex
+def generate_market_report_simple(collection, model, top_k=10, output_path="market_report.md", today_str=None):
+    """
+    Simplified approach using keyword matching + embedding similarity
+    """
+    report_lines = ["# MarketGPT Daily Report\n"]
+    print("[generate_market_report_simple] Starting simple report generation...")
+    try:
+        # Get all articles (avoid vector search entirely)
+        all_results = collection.get(include=["documents", "metadatas"])
+        print(f"[generate_market_report_simple] Fetched {len(all_results['documents'])} articles from collection.")    
+        if not all_results["documents"]:
+            report_lines.append("_No articles found in database._\n")
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(report_lines))
+            return
+        # Combine documents and metadata
+        articles = list(zip(all_results["documents"], all_results["metadatas"]))
+        print(f"[generate_market_report_simple] Found {len(articles)} total articles")
+        # Filter by date if specified
+        if today_str:
+            articles = [(doc, meta) for doc, meta in articles 
+                if meta.get("published_date") == today_str]
 
-        report_lines.append(f"## {category}\n")
-        for i, (doc, meta) in enumerate(articles_for_category, 1):
-            title = meta.get("title", "No title")
-            link = meta.get("link", "#")
-            published = meta.get("published", "Unknown date")
-            report_lines.append(f"{i}. [{title}]({link})  \nPublished: {published}\n")
-        report_lines.append("\n---\n")
+        if not articles:
+            report_lines.append("_No articles found for today._\n")
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(report_lines))
+            return
 
-    # Save the final markdown report
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(report_lines))
+        seen_links = set()
 
-    print(f"[generate_market_report] Report saved to {output_path}")
+        for category, phrases in CATEGORIES.items():
+            category_articles = []
+            print(f"[generate_market_report_simple] Processing category: {category} with {len(phrases)} phrases")
+            # Simple keyword-based filtering first
+            for doc, meta in articles:
+                link = meta.get("link", "")
+                if link in seen_links:
+                    continue
+
+                # Check if any phrase keywords appear in the document
+                doc_lower = doc.lower()
+                if any(any(word.lower() in doc_lower for word in phrase.split()) 
+                        for phrase in phrases):
+                    category_articles.append((doc, meta))
+                    seen_links.add(link)
+
+                    if len(category_articles) >= top_k:
+                        break
+
+            if not category_articles:
+                report_lines.append(f"## {category}\n_No matching articles found for today._\n---\n")
+                continue
+            # Sort by published date (newest first)
+            report_lines.append(f"## {category}\n")
+            for i, (doc, meta) in enumerate(category_articles, 1):
+                title = meta.get("title", "No title")
+                link = meta.get("link", "#")
+                published = meta.get("published", "Unknown date")
+                report_lines.append(f"{i}. [{title}]({link})  \nPublished: {published}\n")
+            report_lines.append("\n---\n")
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(report_lines))
+
+        print(f"[generate_market_report_simple] Report saved to {output_path}")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to generate simple report: {e}")
+        report_lines.append(f"_Error generating report: {e}_\n")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(report_lines))
+
 
 @app.route("/")
 def home():
