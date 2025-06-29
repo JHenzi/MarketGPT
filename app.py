@@ -1,5 +1,4 @@
 # app.py
-# import Markup
 from apscheduler.schedulers.background import BackgroundScheduler
 from chromadb.config import Settings
 from collections import defaultdict
@@ -30,6 +29,7 @@ import time
 import time
 import trafilatura
 import uuid
+import traceback
 
 
 #today_str = datetime.now().strftime("%Y-%m-%d")
@@ -41,6 +41,70 @@ app = Flask(__name__)
 client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma"))
 collection = client.get_or_create_collection(name="marketwatch")
 recommendations_collection = client.get_or_create_collection(name="stock_recommendations")
+
+def load_llm_config(path="llm_config.json"):
+    default_config = {
+        "provider": "local",
+        "endpoint": "http://localhost:1234/v1/chat/completions",
+        "api_key": None
+    }
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as f:
+                user_config = json.load(f)
+                return {**default_config, **user_config}
+        except Exception as e:
+            print(f"[llm_config] Failed to load config, using default. Error: {e}")
+    return default_config
+
+llm_config = load_llm_config()
+# Check if the LLM config is valid
+if llm_config["provider"] not in ["local", "openai", "claude"]:
+    print(f"[llm_config] Invalid provider '{llm_config['provider']}' in llm_config.json. Using default 'local'.")
+    llm_config["provider"] = "local"
+# If using OpenAI or Claude, ensure the endpoint is set correctly
+if llm_config["provider"] in ["openai", "claude"]:
+    if not llm_config["endpoint"]:
+        print("[llm_config] Endpoint is required for OpenAI or Claude. Using default endpoint.")
+        llm_config["endpoint"] = "https://api.openai.com/v1/chat/completions" if llm_config["provider"] == "openai" else "https://api.anthropic.com/v1/complete"
+    if not llm_config["api_key"]:
+        print("[llm_config] API key is required for OpenAI or Claude. Please set it in llm_config.json.")
+        sys.exit(1)
+# If using local LLM, ensure the endpoint is set correctly
+if llm_config["provider"] == "local":
+    if not llm_config["endpoint"]:
+        print("[llm_config] Endpoint is required for local LLM. Using default endpoint.")
+        llm_config["endpoint"] = "http://localhost:1234/v1/chat/completions"
+# Ensure the local endpoint is reachable
+try:
+    response = requests.get(llm_config["endpoint"])
+    if response.status_code != 200:
+        print(f"[llm_config] Local LLM endpoint {llm_config['endpoint']} is not reachable. Please check your setup.")
+        sys.exit(1)
+except requests.RequestException as e:
+    print(f"[llm_config] Error connecting to local LLM endpoint: {e}")
+    sys.exit(1)
+
+# Prepare LLM messages and send them to the endpoint
+def prepare_llm_request(messages, temperature=0.7):
+    provider = llm_config.get("provider", "local")
+    endpoint = llm_config["endpoint"]
+    headers = {}
+    payload = {
+        "messages": messages,
+        "temperature": temperature
+    }
+
+    if provider in ["openai", "claude"]:
+        headers["Authorization"] = f"Bearer {llm_config['api_key']}"
+        if llm_config.get("model"):
+            payload["model"] = llm_config["model"]
+    else:
+        # local provider — only add model if set
+        if llm_config.get("model"):
+            payload["model"] = llm_config["model"]
+
+    return endpoint, headers, payload
 
 
 # SentenceTransformer model
@@ -303,13 +367,17 @@ Please answer this question:
         ]
 
         # Call LLM
-        response = requests.post(
-            "http://192.168.1.220:1234/v1/chat/completions",
-            json={
-                "messages": messages,
-                "temperature": 0.7,
-            }
-        )
+        # response = requests.post(
+        #     "http://192.168.1.220:1234/v1/chat/completions",
+        #     json={
+        #         "messages": messages,
+        #         "temperature": 0.7,
+        #     }
+        # )
+        endpoint, headers, payload = prepare_llm_request(messages, temperature=0.7)
+        response = requests.post(endpoint, headers=headers, json=payload)
+        response.raise_for_status()
+
 
         raw_answer = response.json()["choices"][0]["message"]["content"]
         cleaned_answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE)
@@ -505,13 +573,16 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
 
         try:
             # Call your local LLM
-            response = requests.post(
-                "http://192.168.1.220:1234/v1/chat/completions",
-                json={
-                    "messages": messages,
-                    "temperature": 0.3,
-                }
-            )
+            # response = requests.post(
+            #     "http://192.168.1.220:1234/v1/chat/completions",
+            #     json={
+            #         "messages": messages,
+            #         "temperature": 0.3,
+            #     }
+            # )
+            endpoint, headers, payload = prepare_llm_request(messages, temperature=0.7)
+            response = requests.post(endpoint, headers=headers, json=payload)
+
 
             raw_response = response.json()["choices"][0]["message"]["content"]
             # Clean up the response
@@ -565,26 +636,28 @@ def store_recommendations(recommendations, date_str):
 
         # Store in collection
         try:
+            print(f"[store_recommendations] Storing recommendation with ID: {rec_id}")
             recommendations_collection.add(
-                documents=[rec_text],
-                embeddings=[embedding],
-                ids=[rec_id],
-                metadatas=[{
-                    "company": rec["company"],
-                    "ticker": rec["ticker"],
-                    "recommendation": rec["recommendation"],
-                    "reason": rec["reason"],
-                    "confidence": rec["confidence"],
-                    "article_title": rec["article_title"],
-                    "article_url": rec["article_url"],
-                    "date": date_str,
-                    "timestamp": datetime.now().isoformat()
-                }]
+            documents=[rec_text],
+            embeddings=[embedding],
+            ids=[rec_id],
+            metadatas=[{
+                "company": rec["company"],
+                "ticker": rec["ticker"],
+                "recommendation": rec["recommendation"],
+                "reason": rec["reason"],
+                "confidence": rec["confidence"],
+                "article_title": rec["article_title"],
+                "article_url": rec["article_url"],
+                "date": date_str,
+                "timestamp": datetime.now().isoformat()
+            }]
             )
             print(f"[store_recommendations] Stored: {rec['ticker']} - {rec['recommendation']}")
         except Exception as e:
-            print(f"[store_recommendations] Error storing recommendation: {e}")
-            # Continue with next recommendation instead of crashing
+            print(f"[store_recommendations] Error storing recommendation ID={rec_id}: {e}")
+            traceback.print_exc()  # This gives you the full context and stack trace
+
 
 def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7):
     """
@@ -783,37 +856,42 @@ def delete_recommendation():
 def periodic_fetch_and_report():
     while True:
         try:
-            print("[fetch_and_store] Starting fetch...")
-            fetch_and_store(feed_urls)
-            print("[fetch_and_store] Fetch done. Generating report...")
-            generate_market_report(collection, model)
-            print("[fetch_and_store] Report generated. Extracting stock recommendations...")
-            extract_stock_recommendations(collection, model, today_str)
-            print("[fetch_and_store] Stock recommendations extracted.")
-            print(f"[fetch_and_store] Waiting 15 minutes. Time: {today_str}")
-            time.sleep(15 * 60)
+            print("[periodic] Starting periodic task...")
+
+            try:
+                print("[periodic] Fetching articles...")
+                fetch_and_store(feed_urls)
+                print("[periodic] Fetch done.")
+            except Exception as e:
+                print(f"[periodic] Error during fetch_and_store: {e}")
+                traceback.print_exc()
+                time.sleep(300)  # Wait 5 minutes before next run
+                continue
+
+            try:
+                print("[periodic] Generating report...")
+                generate_market_report(collection, model)
+                print("[periodic] Report generated.")
+            except Exception as e:
+                print(f"[periodic] Error during generate_market_report: {e}")
+                traceback.print_exc()
+
+            try:
+                print("[periodic] Extracting stock recommendations...")
+                extract_stock_recommendations(collection, model, today_str)
+                print("[periodic] Recommendations extracted.")
+            except Exception as e:
+                print(f"[periodic] Error during extract_stock_recommendations: {e}")
+                traceback.print_exc()
+
+            print("[periodic] Sleeping for 15 minutes...")
+            time.sleep(15 * 60)  # 15 minutes
+
         except Exception as e:
-            print(f"[fetch_and_store] Error: {e}")
-            print("[fetch_and_store] Retrying in 5 seconds...")
-            time.sleep(5)
-
-
-# while True:
-#     try:
-#         print("[fetch_and_store] Starting initial fetch...")
-#         # Initial fetch and store
-#         fetch_and_store(feed_urls)
-#         print("[fetch_and_store] Initial fetch completed. Generating market report...")
-#         generate_market_report(collection, model)
-#         print("[fetch_and_store] Market report generated successfully.")
-#         # Schedule the next fetch in 15 minutes
-#         print("[fetch_and_store] Waiting for 15 minutes before next fetch...")
-#         print("Date and Time:", today_str)
-#         time.sleep(15 * 60)  # Sleep for 15 minutes
-#     except Exception as e:
-#         print(f"[fetch_and_store] Error: {e}")
-#         print("[fetch_and_store] Retrying in 5 seconds...")
-#         time.sleep(5)
+            print(f"[periodic] Unexpected top-level error: {e}")
+            traceback.print_exc()
+            print("[periodic] Waiting 5 minutes before retrying...")
+            time.sleep(300)
 
 if __name__ == "__main__":
     # Start background thread before Flask server

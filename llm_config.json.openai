@@ -1,0 +1,6 @@
+{
+  "provider": "openai",
+  "endpoint": "https://api.openai.com/v1/chat/completions",
+  "model": "o4-mini",
+  "api_key": "YOUR_OPENAI_API_KEY_HERE"
+}
