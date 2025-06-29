@@ -22,9 +22,9 @@ The application follows a multi-step pipeline:
 
 1. **Fetch**: A background process periodically scrapes RSS feeds for new articles.
 2. **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database.
-3. **Analyze & Summarize**:
-   - Another background process identifies articles that haven't been summarized and uses a local LLM to generate a concise summary, which is then saved back to the database.
-   - A separate process analyzes the day's news to extract and store stock recommendations.
+3. ~~**Analyze & Summarize**:~~
+   - ~~Another background process identifies articles that haven't been summarized and uses a local LLM to generate a concise summary, which is then saved back to the database.~~
+   - ~~A separate process analyzes the day's news to extract and store stock recommendations.~~ This doesn't work.
 4. **Generate Report**: The system uses vector search to find the most relevant articles for predefined market categories and compiles them into a markdown report.
 5. **Serve**: A **Flask** web server provides the frontend, answering user requests by querying the ChromaDB database and interacting with the LLM for the Q&A feature.
 
@@ -40,7 +40,7 @@ The application follows a multi-step pipeline:
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/JHenzi/MarketGPT.git
 cd MarketGPT
 ```
 
@@ -64,11 +64,13 @@ pip install -r requirements.txt
 
 ### 3. Configure the LLM Endpoint
 
-The application needs to know the address of your local LLM server. This is hardcoded in the source.
+The application needs to know the address of your LLM server. This is hardcoded in the source.
 
-1. Start your local LLM server (e.g., LM Studio). Make sure you are serving a model compatible with chat completions.
-2. Note the server URL (e.g., `http://192.168.1.220:1234`).
-3. Open `app.py` and `summarize.py` and update the hardcoded `http://192.168.1.220:1234/v1/chat/completions` URL to match your LLM server's address.
+1. Start your local LLM server. We're using LM Studio in this example, but you can use any chat completion endpoint like OpenAI, Claude API, or other compatible services. Make sure you are serving a model compatible with chat completions.
+2. Note the server URL (e.g., `http://192.168.1.220:1234` for LM Studio, or `https://api.openai.com` for OpenAI).
+3. Open `app.py` and `summarize.py` and update the hardcoded `http://192.168.1.220:1234/v1/chat/completions` URL to match your LLM server's address or API endpoint.
+
+This version makes it clear that LM Studio is just one option while keeping the specific example intact for those following along with that setup.
 
 ### 4. Run the Application
 
@@ -94,6 +96,10 @@ Navigate to `http://localhost:5020` in your browser.
 - **💬 Ask**: Chat with the MarketGPT assistant to ask specific questions about the market.
 
 ### Helper Scripts
+
+> [!Warn]
+>
+> The below doesn't work and needs help!
 
 - **`summarize.py`**: Can be run manually to summarize a batch of articles stored in the database.
   ```bash
