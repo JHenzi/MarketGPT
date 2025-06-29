@@ -161,12 +161,7 @@ Navigate to `http://localhost:5020` in your browser.
 ## 📂 Project Structure
 
 ```
-├── app.py                    # Main Flask application, routes, and background jobs
-├── summarize.py              # Script for summarizing articles
-├── article_scraper.py        # Helper script for fetching article text (used by other modules)
-├── delete_db.py              # Utility to clear the database collection
-├── requirements.txt          # Python dependencies
-├── market_report.md          # The generated daily report
+├── app.py                    # Main Flask application, routes
 ├── /templates/               # HTML templates for the web UI
 └── /chroma/                  # Directory for the persistent ChromaDB database
 ```
