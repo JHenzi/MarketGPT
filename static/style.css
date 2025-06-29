@@ -1,0 +1,451 @@
+/* General Body Styles (from recommendations.html, can be adjusted) */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f8fafc; /* Light gray, good default */
+}
+
+/* Navbar Styles (consolidated and standardized) */
+nav.main-nav {
+    background: #1a202c; /* Dark background */
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+}
+
+nav.main-nav .nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between; /* Align title and links */
+    align-items: center;
+}
+
+nav.main-nav .nav-title a,
+nav.main-nav .nav-title h2 { /* h2 for pages where title is not a link yet */
+    color: white;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+nav.main-nav .nav-links {
+    display: flex;
+    gap: 1rem; /* Spacing between links */
+}
+
+nav.main-nav .nav-links a {
+    color: #a0aec0; /* Light gray for links */
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+nav.main-nav .nav-links a:hover,
+nav.main-nav .nav-links a.active { /* Added .active class for current page indication */
+    background: #2d3748; /* Slightly lighter dark shade on hover */
+    color: white;
+}
+
+/* Header Styles (from recommendations.html) */
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+/* Filters (from recommendations.html) */
+.filters {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #4a5568;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.filter-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+/* Stock Card Styles (from recommendations.html) */
+.stock-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid;
+}
+
+.stock-card.buy { border-left-color: #10b981; }
+.stock-card.sell { border-left-color: #ef4444; }
+.stock-card.hold { border-left-color: #f59e0b; }
+
+
+.stock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.stock-info { flex: 1; }
+.ticker {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin: 0;
+}
+.company-name {
+    color: #718096;
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+
+.recommendation-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+}
+.badge-buy { background: #d1fae5; color: #065f46; }
+.badge-sell { background: #fee2e2; color: #991b1b; }
+.badge-hold { background: #fef3c7; color: #92400e; }
+
+.confidence {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+.confidence-high { color: #059669; }
+.confidence-medium { color: #d97706; }
+.confidence-low { color: #dc2626; }
+
+.recommendations-list { margin-bottom: 1.5rem; }
+.recommendation-item {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid #e2e8f0;
+}
+.rec-reason {
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+.rec-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #6b7280;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.related-articles {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+}
+.articles-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.article-item {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+.article-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.article-link {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+.article-link:hover { text-decoration: underline; }
+.article-date {
+    color: #6b7280;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.no-data {
+    text-align: center;
+    padding: 3rem;
+    color: #6b7280;
+    background: white;
+    border-radius: 8px;
+}
+
+/* Stats (from recommendations.html) */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.stat-number.buy { color: #10b981; }
+.stat-number.sell { color: #ef4444; }
+.stat-number.hold { color: #f59e0b; } /* Added for consistency */
+.stat-number.total { color: #6366f1; }
+.stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stop-watching-btn {
+    background: #e2e8f0;
+    color: #4a5568;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s, color 0.2s;
+}
+.stop-watching-btn:hover {
+    background: #667eea; /* Consistent hover from filter buttons */
+    color: white;
+}
+
+
+/* Report Page Specific Styles (from report.html) */
+/* Using Tailwind for most report styles, but card layout can be here */
+.section-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+.section-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.section-header {
+    background: #2563eb; /* Tailwind blue-600 */
+    color: white;
+    padding: 1rem 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e7eb;
+}
+.section-content {
+    padding: 1.5rem;
+}
+
+/* Responsive grid for report content - can be adjusted or rely on Tailwind */
+#report-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+@media (min-width: 640px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+@media (min-width: 768px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); } }
+@media (min-width: 1024px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
+@media (min-width: 1280px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+@media (min-width: 1536px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
+
+/* Utility for chat page (from chat.html) */
+.chat-body { /* Applied to body tag via class for specificity */
+    background-color: #f3f4f6; /* bg-gray-100 */
+    min-height: screen;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure Tailwind base, components, utilities are loaded if not using CDN + style.css for everything */
+/* This file assumes Tailwind CSS is still linked in HTML for utility classes. */
+/* These styles are for custom components or overrides. */
+
+/* General link styling for report.html content area, if needed beyond Tailwind */
+#report-content a:not([href^='#']) {
+ /* color: #2563eb; /* Example: Tailwind blue-600 */
+ /* text-decoration: underline; */
+ /* These are handled by Tailwind classes in the JS, so might not be needed here */
+}
+
+#report-content li {
+  /* These are handled by Tailwind classes in the JS, so might not be needed here */
+}
+
+/* Ensure body has some padding if not full-width */
+body {
+    padding: 0; /* Reset body padding, nav/containers will manage it */
+}
+
+/* Container for general content if not using Tailwind's container */
+.content-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Specific body style for index.html */
+body.index-page {
+    background-color: #f9fafb; /* bg-gray-50 */
+    color: #1f2937; /* text-gray-800 */
+    font-family: sans-serif; /* Keep it simple or match others */
+}
+
+/* Specific body style for chat.html */
+body.chat-page {
+    background-color: #f3f4f6; /* bg-gray-100 */
+    min-height: 100vh;
+    display: flex;
+    flex-col; /* flex-direction: column; */
+}
+/* Specific body style for sources.html */
+body.sources-page {
+    background-color: #f3f4f6; /* bg-gray-100 */
+    color: #1f2937; /* text-gray-800 */
+    font-family: sans-serif; /* Keep it simple or match others */
+}
+
+/* Specific body style for report.html */
+body.report-page {
+    background-color: #f3f4f6; /* bg-gray-100 */
+    color: #111827; /* text-gray-900 */
+    font-family: sans-serif;
+}
+
+/* Specific body style for recommendations.html - already defined at top */
+body.recommendations-page {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* max-width, margin, and padding are handled by .main-content-area now */
+    background-color: #f8fafc;
+}
+
+/* Footer styling from index.html (example) */
+footer.main-footer {
+  background-color: #111827; /* bg-gray-900 */
+  color: white;
+  padding: 1.5rem; /* py-6 */
+  text-align: center;
+  font-size: 0.875rem; /* text-sm */
+  margin-top: 5rem; /* mt-20 - can be adjusted */
+}
+
+footer.main-footer a {
+  text-decoration: underline;
+}
+
+footer.main-footer a:hover {
+  color: #60a5fa; /* hover:text-blue-400 */
+}
+
+/* Tailwind prose overrides if necessary, e.g., for markdown content */
+.prose {
+  /* custom prose styles */
+}
+.prose code::before, .prose code::after {
+    content: ""; /* Resetting default backticks for inline code if needed */
+}
+
+/* Base HTML and Body styling */
+html {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f8fafc; /* Default background */
+    color: #1f2937; /* Default text color */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding, handle with containers */
+    /* min-height: 100%; Remove, covered by specific page styles or natural flow */
+}
+
+/* Page-specific body styles that need full height / flex for footer */
+body.chat-page,
+body.index-page { /* index-page now has a footer that should be pushed down */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Default body styles for other pages (report, recommendations, sources) */
+body.report-page,
+body.recommendations-page,
+body.sources-page {
+    /* These pages can rely on natural content flow for height */
+    /* Specific background/colors already defined earlier will take precedence */
+}
+
+
+/* General container for centered content */
+.main-content-area {
+    max-width: 1200px;
+    margin: 0 auto; /* Center content */
+    padding: 20px;    /* Add padding around content */
+    flex-grow: 1; /* Allows this area to grow and push footer down */
+}

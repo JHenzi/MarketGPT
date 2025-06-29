@@ -1,0 +1,14 @@
+<nav class="main-nav">
+    <div class="nav-container">
+        <div class="nav-title">
+            <a href="{{ url_for('home') }}">MarketGPT</a>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}">🏠 Home</a>
+            <a href="{{ url_for('view_market_report') }}" class="{{ 'active' if request.endpoint == 'view_market_report' else '' }}">📊 Report</a>
+            <a href="{{ url_for('view_recommendations') }}" class="{{ 'active' if request.endpoint == 'view_recommendations' else '' }}">💡 Recommendations</a>
+            <a href="{{ url_for('sources') }}" class="{{ 'active' if request.endpoint == 'sources' else '' }}">🔍 Sources</a>
+            <a href="{{ url_for('ask') }}" class="{{ 'active' if request.endpoint == 'ask' else '' }}">💬 Ask</a>
+        </div>
+    </div>
+</nav>

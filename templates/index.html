@@ -5,26 +5,17 @@
  <meta name="viewport" content="width=device-width, initial-scale=1" />
  <title>MarketGPT – AI-Powered Market Insights</title>
  <script src="https://cdn.tailwindcss.com"></script>
+ <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="index-page"> <!-- Updated body class -->
 
-<!-- Navbar -->
-<nav class="bg-gray-900 text-white py-4 shadow">
-  <div class="container mx-auto px-6 flex justify-between items-center">
-    <h1 class="text-2xl font-bold">📈 MarketGPT</h1>
-    <div class="space-x-4 text-sm">
-      <a href="/report" class="hover:underline text-gray-300">📊 Report</a>
-      <a href="/recommendations" class="hover:underline text-gray-300">💡 Recommendations</a>
-      <a href="/sources" class="hover:underline text-gray-300">🔍 Sources</a>
-      <a href="/ask" class="hover:underline text-gray-300">💬 Ask</a>
-    </div>
-  </div>
-</nav>
+{% include 'partials/navbar.html' %}
 
-<!-- Hero Section -->
-<section class="bg-white py-20">
-  <div class="container mx-auto px-6 text-center">
-    <h2 class="text-4xl font-bold text-gray-800 mb-4">MarketGPT</h2>
+<div class="main-content-area"> <!-- Added main-content-area -->
+    <!-- Hero Section -->
+    <section class="bg-white py-20">
+      <div class="container mx-auto px-6 text-center">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">MarketGPT</h2>
     <p class="text-lg text-gray-600 max-w-2xl mx-auto">
       MarketGPT is an AI-powered financial news analysis platform that aggregates, analyzes, and summarizes market news to provide <strong>actionable insights</strong> – all powered by your local or cloud-based LLM.
     </p>
@@ -66,9 +57,10 @@
     </div>
   </div>
 </section>
+</div> <!-- Close main-content-area -->
 
 <!-- Footer -->
-<footer class="bg-gray-900 text-white py-6 text-center text-sm mt-20">
+<footer class="main-footer">
   MarketGPT is open source. <a href="https://github.com/JHenzi/MarketGPT" class="underline hover:text-blue-400">View on GitHub</a>.
 </footer>
 

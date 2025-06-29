@@ -5,98 +5,12 @@
  <title>MarketGPT Daily Report</title>
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+ <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="bg-gray-100 text-gray-900">
-<!-- Add this navigation bar to your existing templates (report.html, sources.html, chat.html) -->
-<nav style="background: #1a202c; padding: 1rem 0; margin-bottom: 2rem;">
- <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
- <div style="display: flex; gap: 2rem; align-items: center;">
- <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
- <div style="display: flex; gap: 1rem;">
- <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
- <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
- <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
- <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
- </div>
- </div>
- </div>
-</nav>
-<style>
-nav a:hover {
- background: #2d3748 !important;
- color: white !important;
-}
+<body class="report-page"> <!-- Updated body class -->
+{% include 'partials/navbar.html' %}
 
-/* Card layout styles */
-.section-card {
- background: white;
- border-radius: 0.5rem;
- box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
- overflow: hidden;
- transition: box-shadow 0.3s ease;
- margin-bottom: 1.5rem;
-}
-
-.section-card:hover {
- box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-.section-header {
- background: #2563eb;
- color: white;
- padding: 1rem 1.5rem;
- font-size: 1.25rem;
- font-weight: 600;
- border-bottom: 1px solid #e5e7eb;
-}
-
-.section-content {
- padding: 1.5rem;
-}
-
-/* Flexible grid layout that fits as many columns as possible */
-#report-content {
- display: grid;
- grid-template-columns: 1fr;
- gap: 1.5rem;
-}
-
-/* Mobile: Single column */
-@media (min-width: 640px) {
- #report-content {
- grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
- }
-}
-
-/* Tablet and up: Auto-fit with minimum column width */
-@media (min-width: 768px) {
- #report-content {
- grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
- }
-}
-
-/* Desktop: Smaller minimum width to fit more columns */
-@media (min-width: 1024px) {
- #report-content {
- grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
- }
-}
-
-/* Large desktop: Even smaller minimum to maximize columns */
-@media (min-width: 1280px) {
- #report-content {
- grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
- }
-}
-
-/* Extra large screens: Optimize for maximum density */
-@media (min-width: 1536px) {
- #report-content {
- grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
- }
-}
-</style>
- <div class="w-full px-4 py-10">
+ <div class="main-content-area w-full px-4 py-10"> <!-- Added main-content-area -->
  <h1 class="text-4xl font-extrabold mb-10 border-b-4 border-blue-600 pb-2">
  📈 MarketGPT Daily Report
  </h1>
