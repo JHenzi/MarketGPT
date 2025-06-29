@@ -847,25 +847,26 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
         # ChromaDB's where clause is limited, so we'll do post-filtering
         results = recommendations_collection.get(
             include=["documents", "metadatas"],
-            where={"active": True}
+            # where={"active": True}
         )
 
 
         # Filter results based on parameters
         filtered_docs = []
         filtered_metas = []
-        
+
         for doc, meta in zip(results["documents"], results["metadatas"]):
             # Apply filters
             if ticker and meta.get("ticker") != ticker:
                 continue
             if recommendation_type and meta.get("recommendation") != recommendation_type:
                 continue
-            
+            if not meta.get("active", True):
+                continue
             # You can add date filtering here if needed
             # if days_back and is_older_than(meta.get("date"), days_back):
             #     continue
-            
+
             filtered_docs.append(doc)
             filtered_metas.append(meta)
 
