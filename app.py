@@ -379,25 +379,20 @@ CATEGORIES = {
 }
 
 def generate_market_report(collection, model: SentenceTransformer, top_k=10, output_path="market_report.md"):
-    report_lines = ["# MarketGPT Weekly Report\n"]
-    seen_article_links = set() # Keep track of articles already added to the report
+    report_lines = ["# MarketGPT Daily Report\n"]
+    seen_article_links = set()  # Track which articles have already been included
 
-    # 1. Compute centroid embeddings for each category
-    category_centroids = {}
-    for cat, phrases in CATEGORIES.items():
-        phrase_embeds = model.encode(phrases)
-        centroid = np.mean(phrase_embeds, axis=0)
-        category_centroids[cat] = centroid
+    for category, phrases in CATEGORIES.items():
+        # Use the first phrase as the representative embedding query
+        topic_query = phrases[0]
+        embedding = model.encode([topic_query])[0]
 
-    # 2. Query docs for each category by similarity
-    for category, centroid in category_centroids.items():
-        # Query chroma with centroid embedding
         results = collection.query(
-            query_embeddings=[centroid.tolist()],
-            n_results=top_k * 2, # Fetch more results to have a chance after deduplication
+            query_embeddings=[embedding.tolist()],
+            n_results=top_k * 3,  # Fetch more to allow for filtering/deduplication
             include=["documents", "metadatas"],
             where={"published_date": today_str}
-            )
+        )
 
         docs = results["documents"][0]
         metas = results["metadatas"][0]
@@ -405,14 +400,21 @@ def generate_market_report(collection, model: SentenceTransformer, top_k=10, out
         articles_for_category = []
         for doc, meta in zip(docs, metas):
             link = meta.get("link")
-            if link and link not in seen_article_links:
-                articles_for_category.append((doc, meta))
-                seen_article_links.add(link) # Add to seen set
-            if len(articles_for_category) >= top_k: # Stop if we have enough unique articles for this category
+            if not link or link in seen_article_links:
+                continue
+
+            # Optional: apply keyword filter for extra precision
+            if not any(keyword.lower() in doc.lower() for keyword in phrases):
+                continue
+
+            articles_for_category.append((doc, meta))
+            seen_article_links.add(link)
+
+            if len(articles_for_category) >= top_k:
                 break
 
         if not articles_for_category:
-            report_lines.append(f"## {category}\n_No relevant news found for today or already included in other categories._\n")
+            report_lines.append(f"## {category}\n_No matching articles found for today._\n---\n")
             continue
 
         report_lines.append(f"## {category}\n")
@@ -420,14 +422,15 @@ def generate_market_report(collection, model: SentenceTransformer, top_k=10, out
             title = meta.get("title", "No title")
             link = meta.get("link", "#")
             published = meta.get("published", "Unknown date")
-            report_lines.append(f"{i}. [{title}]({link})  \n Published: {published}\n")
+            report_lines.append(f"{i}. [{title}]({link})  \nPublished: {published}\n")
         report_lines.append("\n---\n")
 
-    # 3. Save markdown report
+    # Save the final markdown report
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report_lines))
 
     print(f"[generate_market_report] Report saved to {output_path}")
+
 
 def extract_stock_recommendations(collection, model, today_str):
     """
