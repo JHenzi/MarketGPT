@@ -541,7 +541,7 @@ def generate_market_report(collection, model, top_k=10, output_path="market_repo
             link = meta.get("link", "")
             if link in seen_links:
                 continue
-            print(f"[{i+1}/{len(articles)}] Classifying article: {meta.get('title', 'No title')} ({link})")
+            # print(f"[{i+1}/{len(articles)}] Classifying article: {meta.get('title', 'No title')} ({link})")
             # Find best matching category
             best_category = None
             best_similarity = -1
@@ -553,7 +553,7 @@ def generate_market_report(collection, model, top_k=10, output_path="market_repo
                     article_embedding, 
                     cat_embedding.reshape(1, -1)
                 )[0][0]
-                print(f"[{i+1}/{len(articles)}] Similarity with category '{category}': {similarity:.3f}")
+                # print(f"[{i+1}/{len(articles)}] Similarity with category '{category}': {similarity:.3f}")
                 if similarity > best_similarity:
                     best_similarity = similarity
                     best_category = category
@@ -887,7 +887,7 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
             })
 
         return dict(grouped_recs)
-    
+
     except Exception as e:
         print(f"[get_stock_recommendations] Error: {e}")
         return {}
