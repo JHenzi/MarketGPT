@@ -1,19 +1,12 @@
-apscheduler
-chromadb
-dateutils
-feedparser
-Flask
-markdown
-markupsafe
-numpy
-requests
-scikit-learn
-sentence-transformers
-trafilatura
-
-# The following are often dependencies of the above packages,
-# but it's good practice to list them if you rely on specific versions.
-# For now, we'll let pip resolve them.
-# torch
-# torchvision
-# torchaudio
+apscheduler==3.11.0
+chromadb==1.0.13
+feedparser==6.0.2
+Flask==2.2.2
+Markdown==3.8.2
+MarkupSafe==2.1.1
+numpy==1.23.0
+python_dateutil==2.9.0.post0
+Requests==2.32.4
+scikit_learn==1.2.0
+sentence_transformers==2.2.2
+trafilatura==2.0.0

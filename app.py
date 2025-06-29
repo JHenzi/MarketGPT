@@ -459,7 +459,7 @@ def generate_market_report(collection, model: SentenceTransformer, top_k=10, out
             query_embeddings=[embedding.tolist()],
             n_results=top_k * 3,  # Fetch more to allow for filtering/deduplication
             include=["documents", "metadatas"],
-            #where={"published_date": today_str}
+            where={"published_date": today_str}
             # This needs fixed!
             # TODO: Fix the date filtering - we are getting null results. Maybe this whole function and page need to be rewritten.
             # We are getting a key error when querying by date, some indexing issue.
