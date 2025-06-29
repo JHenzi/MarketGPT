@@ -97,8 +97,6 @@ Navigate to `http://localhost:5020` in your browser.
 
 ### Helper Scripts
 
-> [!Warn]
->
 > The below doesn't work and needs help!
 
 - **`summarize.py`**: Can be run manually to summarize a batch of articles stored in the database.
