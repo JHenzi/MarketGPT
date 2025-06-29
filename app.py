@@ -327,59 +327,60 @@ Please answer this question:
 
 # Your categories and example phrases (copy from previous message)
 CATEGORIES = {
-    "Interest Rates and Market Signals": [
-        "Federal Reserve interest rate decision",
-        "Inflation report and CPI data",
-        "Central bank monetary policy update",
-        "Interest rate hike or pause",
-        "Market reaction to bond yields"
+    "Monetary Policy & Inflation": [  # Renamed for clarity
+        "Federal Reserve policy changes", # More specific than "decision"
+        "Consumer Price Index (CPI) data release", # More specific
+        "Central bank inflation targets", # Changed focus
+        "Impact of interest rate adjustments on economy", # More specific scenario
+        "FOMC meeting announcements and outlook" # Added specific event
     ],
-    "Index News and Updates": [
-        "S&P 500 index performance",
-        "Nasdaq technology sector rally",
-        "Dow Jones industrial average movement",
-        "Stock market index closing",
-        "ETF inflows and outflows"
+    "Stock Market Indices": [ # Renamed for clarity
+        "S&P 500 daily closing values and analysis",
+        "Nasdaq Composite technology stock trends", # More specific index name
+        "Dow Jones Industrial Average key movers",
+        "Broad market index volatility (VIX)", # Added different aspect
+        "Exchange Traded Fund (ETF) net asset value changes"
     ],
-    "Sector News and Updates": [
-        "Energy sector earnings report",
-        "Technology industry innovation",
-        "Healthcare stocks update",
-        "Financial sector regulatory changes",
-        "Industrial production growth"
+    "Specific Industry & Sector Performance": [ # Renamed for clarity
+        "Oil and gas sector profit reports", # More specific
+        "Semiconductor industry supply chain news", # More specific tech
+        "Pharmaceutical company drug trial results", # More specific healthcare
+        "Banking sector capital requirements updates", # More specific finance
+        "Manufacturing output and PMI data" # More specific industrial
     ],
-    "Bonds and Yields, Fixed Income": [
-        "Treasury yield curve analysis",
-        "Corporate bond credit spreads",
-        "Fixed income market trends",
-        "Long-term bond yields rise",
-        "Government bond auction results"
+    "Fixed Income & Debt Markets": [ # Renamed for clarity
+        "US Treasury yield curve inversions and steepening", # More specific
+        "High-yield corporate bond market spreads", # More specific
+        "Sovereign debt credit rating changes", # Added different aspect
+        "Municipal bond issuance and demand", # Added different aspect
+        "Federal government debt ceiling negotiations" # Added specific event
     ],
-    "New Products, Disruption, Growth and Strength": [
-        "Initial public offering announcement",
-        "Artificial intelligence innovation",
-        "Electric vehicle market growth",
-        "Biotech breakthrough development",
-        "Record earnings and expansion plans"
+    "Innovation & Corporate Growth Events": [ # Renamed for clarity
+        "Unicorn company IPO filings and valuations", # More specific
+        "Breakthroughs in generative AI applications", # More specific
+        "Electric vehicle (EV) battery technology advancements", # More specific
+        "Biotechnology patent approvals for new treatments", # More specific
+        "Company expansion into new international markets" # Changed focus from just earnings
     ],
-    "Traditional Markets, Weakness": [
-        "Retail sector slowdown",
-        "Company layoffs and restructuring",
-        "Missed earnings estimates",
-        "Bankruptcy filings in retail",
-        "Real estate market weakness"
+    "Corporate Challenges & Market Weakness": [ # Renamed for clarity
+        "Legacy retail chain store closures", # More specific
+        "Major corporation workforce reduction plans", # More specific
+        "Quarterly earnings misses and revenue warnings", # More specific
+        "Chapter 11 bankruptcy filings by notable companies", # More specific
+        "Commercial real estate vacancy rate increases" # More specific
     ],
-    "Global Markets, China": [
-        "China economic stimulus measures",
-        "European Central Bank policy update",
-        "Japan stock market trends",
-        "Global trade tensions and tariffs",
-        "Emerging markets currency fluctuations"
+    "International Trade & Global Economics": [ # Renamed for clarity
+        "China's GDP growth rate forecasts", # More specific
+        "European Central Bank (ECB) interest rate decisions", # More specific
+        "Japan's Nikkei index performance and outlook", # More specific
+        "Impact of international trade tariffs on specific goods", # More specific
+        "Currency exchange rate fluctuations in G20 economies" # More specific
     ],
 }
 
 def generate_market_report(collection, model: SentenceTransformer, top_k=10, output_path="market_report.md"):
     report_lines = ["# MarketGPT Weekly Report\n"]
+    seen_article_links = set() # Keep track of articles already added to the report
 
     # 1. Compute centroid embeddings for each category
     category_centroids = {}
@@ -393,26 +394,32 @@ def generate_market_report(collection, model: SentenceTransformer, top_k=10, out
         # Query chroma with centroid embedding
         results = collection.query(
             query_embeddings=[centroid.tolist()],
-            n_results=top_k,
+            n_results=top_k * 2, # Fetch more results to have a chance after deduplication
             include=["documents", "metadatas"],
             where={"published_date": today_str}
             )
 
-
         docs = results["documents"][0]
         metas = results["metadatas"][0]
 
-        if not docs:
-            report_lines.append(f"## {category}\n_No relevant news found._\n")
+        articles_for_category = []
+        for doc, meta in zip(docs, metas):
+            link = meta.get("link")
+            if link and link not in seen_article_links:
+                articles_for_category.append((doc, meta))
+                seen_article_links.add(link) # Add to seen set
+            if len(articles_for_category) >= top_k: # Stop if we have enough unique articles for this category
+                break
+
+        if not articles_for_category:
+            report_lines.append(f"## {category}\n_No relevant news found for today or already included in other categories._\n")
             continue
 
         report_lines.append(f"## {category}\n")
-        for i, (doc, meta) in enumerate(zip(docs, metas), 1):
+        for i, (doc, meta) in enumerate(articles_for_category, 1):
             title = meta.get("title", "No title")
             link = meta.get("link", "#")
             published = meta.get("published", "Unknown date")
-
-
             report_lines.append(f"{i}. [{title}]({link})  \n Published: {published}\n")
         report_lines.append("\n---\n")
 
