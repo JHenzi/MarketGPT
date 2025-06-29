@@ -5,31 +5,13 @@
  <meta name="viewport" content="width=device-width, initial-scale=1" />
  <title>Chat with MarketGPT</title>
  <script src="https://cdn.tailwindcss.com"></script>
+ <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-<!-- Add this navigation bar to your existing templates (report.html, sources.html, chat.html) -->
-<nav style="background: #1a202c; padding: 1rem 0; margin-bottom: 2rem;">
- <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
- <div style="display: flex; gap: 2rem; align-items: center;">
- <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
- <div style="display: flex; gap: 1rem;">
- <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
- <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
- <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
- <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
- </div>
- </div>
- </div>
-</nav>
-<style>
-nav a:hover {
- background: #2d3748 !important;
- color: white !important;
-}
-</style>
+<body class="chat-page"> <!-- Updated body class -->
+{% include 'partials/navbar.html' %}
 
 <!-- Centered container -->
-<div class="flex-1 flex items-center justify-center px-4">
+<div class="main-content-area flex-1 flex items-center justify-center px-4"> <!-- Added main-content-area -->
  <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-8">
  <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">🧠 MarketGPT Agent</h1>
  <form method="POST" class="space-y-4" id="chatForm">

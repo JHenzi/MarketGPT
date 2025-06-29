@@ -5,30 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Source Search | MarketGPT</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans">
-  <!-- Add this navigation bar to your existing templates (report.html, sources.html, chat.html) -->
-<nav style="background: #1a202c; padding: 1rem 0; margin-bottom: 2rem;">
-  <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
-      <div style="display: flex; gap: 2rem; align-items: center;">
-          <h2 style="color: white; margin: 0; font-size: 1.5rem;">MarketGPT</h2>
-          <div style="display: flex; gap: 1rem;">
-              <a href="/report" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">📊 Report</a>
-              <a href="/recommendations" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💡 Recommendations</a>
-              <a href="/sources" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">🔍 Sources</a>
-              <a href="/ask" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;">💬 Ask</a>
-          </div>
-      </div>
-  </div>
-</nav>
+<body class="sources-page"> <!-- Updated body class -->
+  {% include 'partials/navbar.html' %}
 
-<style>
-nav a:hover {
-  background: #2d3748 !important;
-  color: white !important;
-}
-</style>
-  <div class="max-w-4xl mx-auto py-10 px-6">
+  <div class="main-content-area max-w-4xl mx-auto py-10 px-6"> <!-- Added main-content-area -->
     <h1 class="text-3xl font-bold mb-6 text-blue-700">🔍 Source Search — MarketGPT</h1>
 
     <form method="POST" class="mb-8">
