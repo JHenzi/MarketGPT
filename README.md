@@ -32,11 +32,11 @@ The application follows a multi-step pipeline:
 
 ~~The Market Report is not outputing anything! There is a key error when we add a where. clause for today's date. Removing it still doesn't generate a file. Unsure when and how this broke but worth refactoring the entire code here.~~
 
-- [x] Fix Market Report Generation Function
+- [X] Fix Market Report Generation Function
 
 ~~We need a "/" route.~~
 
-- [x] Add "/" route
+- [X] Add "/" route
 
 ---
 
@@ -52,6 +52,10 @@ The application follows a multi-step pipeline:
 #### Tested Environment:
 
 Tested on a Mac Mini M1 (2020). A miniconda install of Python. I'm personally not using a virtual environment, I've given up on this machine's install for now. I'm running [LM Studio](https://lmstudio.ai "LM Studio, AI toolkit"), and have found the [Gemma 3 4B ](https://huggingface.co/google/gemma-3-4b-it-qat-q4_0-gguf "Gemma 3 4B IT QAT")model to work sufficiently well.
+
+#### Context Window Size!
+
+**Important**: Because we feed the LLM the headline, URL and article **content** we need to ensure the `context size` (window) for our LLM is large enough to handle the RAG input (specifically for /ask). I've found good results in LM Studio at a context of 7,500 tokens.
 
 ### 1. Clone the Repository
 
@@ -87,7 +91,6 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
    - `llm_config.json.localLLM` (for local models like LM Studio, Ollama)
    - `llm_config.json.openai` (for OpenAI API)
    - `llm_config.json.claude` (for Anthropic Claude API)
-
 2. **Create `llm_config.json`:** Copy your chosen template and rename it to `llm_config.json`. For example:
 
    ```bash
@@ -99,7 +102,6 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
    # If using OpenAI
    cp llm_config.json.openai llm_config.json
    ```
-
 3. **Edit `llm_config.json`:**
 
    - Open `llm_config.json` in a text editor.
@@ -113,7 +115,6 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
        "api_key": null
      }
      ```
-
    - **For OpenAI:** Replace `"YOUR_OPENAI_API_KEY_HERE"` with your actual OpenAI API key. You can also change the `model` (e.g., `"gpt-4o-mini"`, `"gpt-3.5-turbo"`).
 
      ```json
@@ -124,7 +125,6 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
        "api_key": "YOUR_OPENAI_API_KEY_HERE"
      }
      ```
-
    - **For Claude:** Replace `"YOUR_CLAUDE_API_KEY_HERE"` with your actual Anthropic API key. Update the `model` if needed (e.g., `"claude-3-sonnet-20240229"`).
 
      ```json
