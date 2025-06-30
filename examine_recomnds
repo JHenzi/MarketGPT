@@ -1,0 +1,17 @@
+import chromadb
+from chromadb.config import Settings
+
+persist_dir = "./chroma"  # Adjust this!
+client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory=persist_dir))
+
+print(f"📦 Available collections in '{persist_dir}':")
+for coll in client.list_collections():
+    print("-", coll.name)
+
+# Try to inspect all collections
+for coll in client.list_collections():
+    collection = client.get_collection(coll.name)
+    results = collection.get(include=["metadatas", "documents"])
+    print(f"\n🔍 Collection: {coll.name} — {len(results['documents'])} documents")
+    for meta, doc in zip(results["metadatas"], results["documents"]):
+        print(f"  → {meta.get('ticker', 'N/A')} | Active: {meta.get('active', True)}")
