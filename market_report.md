@@ -37,64 +37,64 @@ Published: Tue, 17 Jun 2025 22:54:21 GMT
 
 ## Stock Market Indices
 
-1. [Why oil prices swung so wildly during the Iran-Israel conflict and where the market goes from here](https://www.cnbc.com/2025/06/29/oil-prices-iran-israel-conflict-nuclear-trump-sanctions.html)  
+1. [Cramer says Broadcom is a buy for new investors, Apple stock's less 'treacherous'](https://www.cnbc.com/2025/06/06/cramer-broadcom-is-a-buy-for-new-investors-apple-less-treacherous.html)  
+Published: Fri, 06 Jun 2025 15:21:11 GMT
+
+2. [Why oil prices swung so wildly during the Iran-Israel conflict and where the market goes from here](https://www.cnbc.com/2025/06/29/oil-prices-iran-israel-conflict-nuclear-trump-sanctions.html)  
 Published: Sun, 29 Jun 2025 11:08:10 GMT
 
-2. [Nvidia insiders dump more than $1 billion in stock, according to report](https://www.cnbc.com/2025/06/29/nvidia-insiders-1-billion-stock-sales.html)  
+3. [Nvidia insiders dump more than $1 billion in stock, according to report](https://www.cnbc.com/2025/06/29/nvidia-insiders-1-billion-stock-sales.html)  
 Published: Sun, 29 Jun 2025 18:07:32 GMT
 
-3. [Nvidia shares retake AI leadership role. Wall Street is bullish going forward](https://www.cnbc.com/2025/06/29/nvidia-shares-retake-ai-leadership-role-wall-street-is-bullish-going-forward.html)  
+4. [Nvidia shares retake AI leadership role. Wall Street is bullish going forward](https://www.cnbc.com/2025/06/29/nvidia-shares-retake-ai-leadership-role-wall-street-is-bullish-going-forward.html)  
 Published: Sun, 29 Jun 2025 11:14:32 GMT
 
-4. [Bigger bitcoin HODL: Time for 10% to 40% of portfolio in crypto, says financial advisor Ric Edelman](https://www.cnbc.com/2025/06/27/bitcoin-hodl-ric-edelman-wants-10percent-40percent-portfolio-crypto.html)  
+5. [Bigger bitcoin HODL: Time for 10% to 40% of portfolio in crypto, says financial advisor Ric Edelman](https://www.cnbc.com/2025/06/27/bitcoin-hodl-ric-edelman-wants-10percent-40percent-portfolio-crypto.html)  
 Published: Fri, 27 Jun 2025 21:22:28 GMT
 
-5. [Top Wall Street analysts like these 3 dividend stocks for enhanced returns](https://www.cnbc.com/2025/06/29/top-wall-street-analysts-like-these-3-dividend-stocks-for-enhanced-returns.html)  
+6. [Top Wall Street analysts like these 3 dividend stocks for enhanced returns](https://www.cnbc.com/2025/06/29/top-wall-street-analysts-like-these-3-dividend-stocks-for-enhanced-returns.html)  
 Published: Sun, 29 Jun 2025 11:17:52 GMT
 
-6. [Xiaomi shares soar to record highs as its new EV that undercuts Tesla draws strong response](https://www.cnbc.com/2025/06/26/chinas-xiaomi-undercuts-tesla-with-yet-another-cheaper-car.html)  
+7. [Xiaomi shares soar to record highs as its new EV that undercuts Tesla draws strong response](https://www.cnbc.com/2025/06/26/chinas-xiaomi-undercuts-tesla-with-yet-another-cheaper-car.html)  
 Published: Fri, 27 Jun 2025 02:29:02 GMT
 
-7. [Barclays and Deutsche Bank shares close at decade highs on trade deal optimism](https://www.cnbc.com/2025/06/27/europe-stock-markets-live-updates-on-stoxx-ftse-dax-tariffs-news.html)  
+8. [Barclays and Deutsche Bank shares close at decade highs on trade deal optimism](https://www.cnbc.com/2025/06/27/europe-stock-markets-live-updates-on-stoxx-ftse-dax-tariffs-news.html)  
 Published: Fri, 27 Jun 2025 16:05:47 GMT
 
-8. [Stock market reclaims February record peak. How the fundamentals and technicals look now vs. then](https://www.cnbc.com/2025/06/28/stock-market-reclaims-february-record-peak-how-the-fundamentals-and-technicals-look-now-vs-then.html)  
+9. [Stock market reclaims February record peak. How the fundamentals and technicals look now vs. then](https://www.cnbc.com/2025/06/28/stock-market-reclaims-february-record-peak-how-the-fundamentals-and-technicals-look-now-vs-then.html)  
 Published: Sat, 28 Jun 2025 13:00:09 GMT
 
-9. [Traders head into the second half of the year with stocks at all-time highs, jobs report pending](https://www.cnbc.com/2025/06/27/stock-market-next-week-outlook-for-june-30-july-4-2025.html)  
+10. [Traders head into the second half of the year with stocks at all-time highs, jobs report pending](https://www.cnbc.com/2025/06/27/stock-market-next-week-outlook-for-june-30-july-4-2025.html)  
 Published: Fri, 27 Jun 2025 18:59:01 GMT
-
-10. [Conflict or ceasefire, most markets remain unfazed — here’s why](https://www.cnbc.com/2025/06/24/global-markets-post-muted-gains-on-back-of-trump-policy-fatigue.html)  
-Published: Tue, 24 Jun 2025 06:04:10 GMT
 
 
 ---
 
 ## Specific Industry & Sector Performance
 
-1. [Oracle shares climb 8% as earnings, revenue top estimates](https://www.cnbc.com/2025/06/11/oracle-orcl-q4-earnings-report-2025.html)  
-Published: Thu, 12 Jun 2025 09:10:35 GMT
-
-2. [China's industrial profits plunge 9.1%, steepest fall in seven months](https://www.cnbc.com/2025/06/27/china-industrial-profits-plunge-9point1percent-in-may.html)  
+1. [China's industrial profits plunge 9.1%, steepest fall in seven months](https://www.cnbc.com/2025/06/27/china-industrial-profits-plunge-9point1percent-in-may.html)  
 Published: Fri, 27 Jun 2025 07:22:53 GMT
 
-3. [CNBC's Inside India newsletter: Iran-Israel war sparks fresh interest in India's defense sector](https://www.cnbc.com/2025/06/26/cnbcs-inside-india-newsletter-iran-israel-war-sparks-fresh-interest-in-indias-defense-sector.html)  
+2. [CNBC's Inside India newsletter: Iran-Israel war sparks fresh interest in India's defense sector](https://www.cnbc.com/2025/06/26/cnbcs-inside-india-newsletter-iran-israel-war-sparks-fresh-interest-in-indias-defense-sector.html)  
 Published: Thu, 26 Jun 2025 14:53:22 GMT
 
-4. [CNBC's Inside India newsletter: Is India's hot IPO market cooling, or is it a blip?](https://www.cnbc.com/2025/06/19/cnbcs-inside-india-newsletter-is-indias-hot-ipo-market-cooling-or-is-it-a-blip.html)  
+3. [CNBC's Inside India newsletter: Is India's hot IPO market cooling, or is it a blip?](https://www.cnbc.com/2025/06/19/cnbcs-inside-india-newsletter-is-indias-hot-ipo-market-cooling-or-is-it-a-blip.html)  
 Published: Fri, 20 Jun 2025 01:50:25 GMT
 
-5. [Why mega-merger speculation between oil majors Shell and BP is raising eyebrows](https://www.cnbc.com/2025/06/26/why-mega-merger-speculation-between-shell-and-bp-is-raising-eyebrows.html)  
+4. [Why mega-merger speculation between oil majors Shell and BP is raising eyebrows](https://www.cnbc.com/2025/06/26/why-mega-merger-speculation-between-shell-and-bp-is-raising-eyebrows.html)  
 Published: Thu, 26 Jun 2025 11:17:09 GMT
 
-6. [Google could face changes to search in the UK as regulators crack down](https://www.cnbc.com/2025/06/24/google-could-face-changes-to-search-in-the-uk-amid-cma-crackdown.html)  
+5. [Google could face changes to search in the UK as regulators crack down](https://www.cnbc.com/2025/06/24/google-could-face-changes-to-search-in-the-uk-amid-cma-crackdown.html)  
 Published: Tue, 24 Jun 2025 10:35:00 GMT
 
-7. [Micron reports earnings, revenue beat and issues strong forecast](https://www.cnbc.com/2025/06/25/micron-mu-q3-2025-earnings-report.html)  
+6. [Micron reports earnings, revenue beat and issues strong forecast](https://www.cnbc.com/2025/06/25/micron-mu-q3-2025-earnings-report.html)  
 Published: Thu, 26 Jun 2025 14:46:37 GMT
 
-8. [General Mills forecasts weak annual profit as economic uncertainty weighs](https://www.cnbc.com/2025/06/25/general-mills-forecasts-weak-annual-profit-as-economic-uncertainty-weighs.html)  
+7. [General Mills forecasts weak annual profit as economic uncertainty weighs](https://www.cnbc.com/2025/06/25/general-mills-forecasts-weak-annual-profit-as-economic-uncertainty-weighs.html)  
 Published: Wed, 25 Jun 2025 16:36:49 GMT
+
+8. [Oracle shares climb 8% as earnings, revenue top estimates](https://www.cnbc.com/2025/06/11/oracle-orcl-q4-earnings-report-2025.html)  
+Published: Thu, 12 Jun 2025 09:10:35 GMT
 
 9. [Satellite imaging play Planet Labs pops more than 50% after posting earnings beat, record revenue](https://www.cnbc.com/2025/06/05/satellite-imaging-play-planet-labs-pops-more-than-50percent-after-posting-earnings-beat.html)  
 Published: Thu, 05 Jun 2025 17:11:02 GMT
@@ -142,8 +142,8 @@ Published: Thu, 26 Jun 2025 19:21:35 GMT
 
 ## Innovation & Corporate Growth Events
 
-1. [Healthy Returns: What to know about the FDA’s plan to speed up some drug reviews](https://www.cnbc.com/2025/06/20/healthy-returns-fda-drug-reviews.html)  
-Published: Fri, 20 Jun 2025 16:04:03 GMT
+1. [OpenAI hits $10 billion in annual recurring revenue fueled by ChatGPT growth](https://www.cnbc.com/2025/06/09/openai-hits-10-billion-in-annualized-revenue-fueled-by-chatgpt-growth.html)  
+Published: Mon, 09 Jun 2025 19:33:51 GMT
 
 2. [China's biggest public AI drop since DeepSeek, Baidu's open source Ernie, is about to hit the market](https://www.cnbc.com/2025/06/29/china-biggest-ai-drop-since-deepseek-baidus-ernie-to-hit-market.html)  
 Published: Sun, 29 Jun 2025 16:35:06 GMT
@@ -177,70 +177,70 @@ Published: Wed, 25 Jun 2025 20:01:44 GMT
 
 ## Corporate Challenges & Market Weakness
 
-1. [Gap revived its brand identity. Here's what investors are keeping an eye on next](https://www.cnbc.com/2025/06/14/gap-revived-its-identity-heres-why-investors-are-still-cautious.html)  
-Published: Sat, 14 Jun 2025 12:00:01 GMT
-
-2. [How Ikea is doubling down on price cuts to attract cost-conscious customers](https://www.cnbc.com/2025/06/26/how-ikea-is-doubling-down-on-price-cuts-to-attract-cost-conscious-customers.html)  
+1. [How Ikea is doubling down on price cuts to attract cost-conscious customers](https://www.cnbc.com/2025/06/26/how-ikea-is-doubling-down-on-price-cuts-to-attract-cost-conscious-customers.html)  
 Published: Thu, 26 Jun 2025 11:43:32 GMT
 
-3. [CNBC's UK Exchange newsletter: The U.K.'s pension shake-up is facing pushback](https://www.cnbc.com/2025/06/25/cnbcs-uk-exchange-newsletter-the-uks-pension-shake-up-is-facing-pushback.html)  
+2. [CNBC's UK Exchange newsletter: The U.K.'s pension shake-up is facing pushback](https://www.cnbc.com/2025/06/25/cnbcs-uk-exchange-newsletter-the-uks-pension-shake-up-is-facing-pushback.html)  
 Published: Wed, 25 Jun 2025 05:30:01 GMT
 
-4. [Nike stock soars 17% after CEO soothes investors, says recovery is on the horizon](https://www.cnbc.com/2025/06/27/nike-stock-soars-after-better-than-feared-q4-2025-results.html)  
+3. [Nike stock soars 17% after CEO soothes investors, says recovery is on the horizon](https://www.cnbc.com/2025/06/27/nike-stock-soars-after-better-than-feared-q4-2025-results.html)  
 Published: Fri, 27 Jun 2025 18:05:01 GMT
 
-5. [Pixar's 'Elio' is emblematic of a bigger headwind for Hollywood](https://www.cnbc.com/2025/06/26/pixars-elio-is-emblematic-of-a-bigger-headwind-for-hollywood.html)  
+4. [Pixar's 'Elio' is emblematic of a bigger headwind for Hollywood](https://www.cnbc.com/2025/06/26/pixars-elio-is-emblematic-of-a-bigger-headwind-for-hollywood.html)  
 Published: Thu, 26 Jun 2025 13:48:28 GMT
 
-6. [Family offices double down on private credit and infrastructure during private equity slump, survey finds](https://www.cnbc.com/2025/06/26/family-offices-double-down-on-private-credit-and-infrastructure.html)  
+5. [Family offices double down on private credit and infrastructure during private equity slump, survey finds](https://www.cnbc.com/2025/06/26/family-offices-double-down-on-private-credit-and-infrastructure.html)  
 Published: Thu, 26 Jun 2025 13:15:01 GMT
 
-7. [Airport lounges, Europe and premium class are on the table, Southwest CEO says](https://www.cnbc.com/2025/06/25/southwest-airport-lounges-europe-flights-ceo-bob-jordan.html)  
+6. [Airport lounges, Europe and premium class are on the table, Southwest CEO says](https://www.cnbc.com/2025/06/25/southwest-airport-lounges-europe-flights-ceo-bob-jordan.html)  
 Published: Thu, 26 Jun 2025 18:07:42 GMT
 
-8. [McDonald's and Krispy Kreme will end doughnut partnership next month](https://www.cnbc.com/2025/06/24/mcdonalds-and-krispy-kreme-end-doughnut-partnership.html)  
+7. [McDonald's and Krispy Kreme will end doughnut partnership next month](https://www.cnbc.com/2025/06/24/mcdonalds-and-krispy-kreme-end-doughnut-partnership.html)  
 Published: Tue, 24 Jun 2025 15:56:46 GMT
 
-9. [Kroger's shares rise as grocer says shoppers seek lower prices, cook more at home](https://www.cnbc.com/2025/06/20/kroger-kr-q1-2025-earnings.html)  
+8. [Kroger's shares rise as grocer says shoppers seek lower prices, cook more at home](https://www.cnbc.com/2025/06/20/kroger-kr-q1-2025-earnings.html)  
 Published: Fri, 20 Jun 2025 20:04:25 GMT
 
-10. [Darden Restaurants beats earnings estimates, as Olive Garden parent predicts growth in 2026](https://www.cnbc.com/2025/06/20/darden-restaurants-dri-q4-2025-earnings.html)  
+9. [Darden Restaurants beats earnings estimates, as Olive Garden parent predicts growth in 2026](https://www.cnbc.com/2025/06/20/darden-restaurants-dri-q4-2025-earnings.html)  
 Published: Fri, 20 Jun 2025 20:11:32 GMT
+
+10. [Shares of RH jump as luxury retailer takes steps to blunt tariff impact](https://www.cnbc.com/2025/06/12/rh-rh-q1-2025-earnings.html)  
+Published: Fri, 13 Jun 2025 16:15:34 GMT
 
 
 ---
 
 ## International Trade & Global Economics
 
-1. [Zara owner Inditex flags slowing summer sales as tariff uncertainty weighs](https://www.cnbc.com/2025/06/11/inditex-itxes-earnings-q1-2025-.html)  
-Published: Wed, 11 Jun 2025 16:08:51 GMT
-
-2. [China's suppressed crypto demand is spilling over into these stocks](https://www.cnbc.com/2025/06/29/chinas-suppressed-crypto-demand-is-spilling-over-into-these-stocks.html)  
+1. [China's suppressed crypto demand is spilling over into these stocks](https://www.cnbc.com/2025/06/29/chinas-suppressed-crypto-demand-is-spilling-over-into-these-stocks.html)  
 Published: Sun, 29 Jun 2025 11:16:12 GMT
 
-3. [What are tariffs and will they impact your savings?](https://www.cnbc.com/select/what-are-tariffs-and-will-they-impact-your-savings-/)  
+2. [What are tariffs and will they impact your savings?](https://www.cnbc.com/select/what-are-tariffs-and-will-they-impact-your-savings-/)  
 Published: Thu, 26 Jun 2025 18:28:51 GMT
 
-4. [Op-ed: U.S. is losing rare earth metals war to China, and running out of time to win it back](https://www.cnbc.com/2025/06/29/us-china-rare-earth-minerals-metals-geopolitics-power.html)  
+3. [Op-ed: U.S. is losing rare earth metals war to China, and running out of time to win it back](https://www.cnbc.com/2025/06/29/us-china-rare-earth-minerals-metals-geopolitics-power.html)  
 Published: Sun, 29 Jun 2025 17:15:32 GMT
 
-5. [France is betting Eutelsat can become Europe's answer to Starlink — but experts aren't convinced](https://www.cnbc.com/2025/06/29/eutelsat-europe-starlink.html)  
+4. [France is betting Eutelsat can become Europe's answer to Starlink — but experts aren't convinced](https://www.cnbc.com/2025/06/29/eutelsat-europe-starlink.html)  
 Published: Sun, 29 Jun 2025 06:08:36 GMT
 
-6. [The global week ahead: A hectic half first heralds a volatile second](https://www.cnbc.com/2025/06/29/global-week-ahead-a-hectic-half-first-heralds-a-volatile-second.html)  
+5. [The global week ahead: A hectic half first heralds a volatile second](https://www.cnbc.com/2025/06/29/global-week-ahead-a-hectic-half-first-heralds-a-volatile-second.html)  
 Published: Sun, 29 Jun 2025 06:06:28 GMT
 
-7. [China skirts U.S. sanctions as top buyer of Iranian oil — here’s how, and why that’s unlikely to change soon](https://www.cnbc.com/2025/06/27/china-us-sanctions-shadow-fleet-top-iranian-oil-buyer-trade.html)  
+6. [China skirts U.S. sanctions as top buyer of Iranian oil — here’s how, and why that’s unlikely to change soon](https://www.cnbc.com/2025/06/27/china-us-sanctions-shadow-fleet-top-iranian-oil-buyer-trade.html)  
 Published: Fri, 27 Jun 2025 06:51:10 GMT
 
-8. [Gen Alpha are spending big — here's 2 tips to raise money savvy kids in a world of instant gratification](https://www.cnbc.com/2025/06/28/how-to-raise-money-savvy-kids-in-a-world-of-instant-gratification.html)  
+7. [Gen Alpha are spending big — here's 2 tips to raise money savvy kids in a world of instant gratification](https://www.cnbc.com/2025/06/28/how-to-raise-money-savvy-kids-in-a-world-of-instant-gratification.html)  
 Published: Sat, 28 Jun 2025 06:20:11 GMT
 
-9. [Trump shrugs off July tariff deadline: 'We can do whatever we want'](https://www.cnbc.com/2025/06/27/trump-tariff-trade-deadline-july.html)  
+8. [Trump shrugs off July tariff deadline: 'We can do whatever we want'](https://www.cnbc.com/2025/06/27/trump-tariff-trade-deadline-july.html)  
 Published: Fri, 27 Jun 2025 20:06:49 GMT
 
-10. [States are bracing for a possible trade war. Some more than others](https://www.cnbc.com/2025/06/27/states-are-bracing-for-a-possible-trade-war-some-more-than-others.html)  
+9. [States are bracing for a possible trade war. Some more than others](https://www.cnbc.com/2025/06/27/states-are-bracing-for-a-possible-trade-war-some-more-than-others.html)  
 Published: Fri, 27 Jun 2025 18:54:59 GMT
+
+10. [China confirms details of U.S. trade deal](https://www.cnbc.com/2025/06/27/china-us-agree-details-of-london-trade-framework-trade-agreement-beijing.html)  
+Published: Fri, 27 Jun 2025 14:11:19 GMT
 
 
 ---
