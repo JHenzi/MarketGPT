@@ -39,10 +39,7 @@ app = Flask(__name__)
 
 # Setup Chroma for articles
 client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma"))
-collection = client.get_or_create_collection(
-    name="marketwatch",
-    metadata={"hnsw:M": "32", "hnsw:ef_construction": "100"}  # Added HNSW parameters
-)
+collection = client.get_or_create_collection(name="marketwatch")
 # recommendations_collection is no longer needed here, SQLite will be used.
 
 # Initialize SQLite DB for recommendations
@@ -875,15 +872,11 @@ def get_related_articles_for_stock(ticker, days_back=7):
     search_query = f"{ticker} stock shares"
     embedding = embed_text([search_query])[0]
 
-    try:
-        results = collection.query(
-            query_embeddings=[embedding],
-            n_results=20,
-            include=["documents", "metadatas"]
-        )
-    except RuntimeError as e:
-        print(f"[get_related_articles_for_stock] ChromaDB query failed for ticker {ticker}: {e}")
-        return []  # Return empty list on error
+    results = collection.query(
+        query_embeddings=[embedding],
+        n_results=20,
+        include=["documents", "metadatas"]
+    )
 
     # Filter results that actually mention the ticker
     relevant_articles = []
