@@ -9,7 +9,7 @@ from flask import render_template_string
 from flask import request, render_template
 from markupsafe import Markup
 from sentence_transformers import SentenceTransformer
-from sentence_transformers import SentenceTransformer
+# Removed duplicate SentenceTransformer import
 from sklearn.metrics.pairwise import cosine_similarity
 from zoneinfo import ZoneInfo
 import chromadb
@@ -18,18 +18,18 @@ import json
 import markdown
 import numpy as np
 import os
-import os
+# Removed duplicate os import
 import random
 import re
 import requests
 import sys
 import threading
 import time
-import time
-import time
+# Removed duplicate time imports
 import trafilatura
 import uuid
 import traceback
+import db_utils # Import the new SQLite utilities
 
 
 #today_str = datetime.now().strftime("%Y-%m-%d")
@@ -37,10 +37,14 @@ today_str = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
 app = Flask(__name__)
 
-# Setup Chroma
+# Setup Chroma for articles
 client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma"))
 collection = client.get_or_create_collection(name="marketwatch")
-recommendations_collection = client.get_or_create_collection(name="stock_recommendations")
+# recommendations_collection is no longer needed here, SQLite will be used.
+
+# Initialize SQLite DB for recommendations
+db_utils.init_db()
+
 
 def load_llm_config(path="llm_config.json"):
     default_config = {
@@ -784,111 +788,80 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
         # Small delay between batches
         time.sleep(2)
 
-    # Store recommendations in ChromaDB
-    store_recommendations(all_recommendations, today_str)
-    print(f"[extract_stock_recommendations] Processed {len(all_recommendations)} recommendations")
+    # Store recommendations in SQLite
+    store_recommendations_sqlite_wrapper(all_recommendations, today_str)
+    print(f"[extract_stock_recommendations] Processed {len(all_recommendations)} recommendations for SQLite storage")
 
-def store_recommendations(recommendations, date_str):
+def store_recommendations_sqlite_wrapper(recommendations_data, date_str):
     """
-    Store stock recommendations in ChromaDB
+    Wrapper to store stock recommendations in SQLite.
+    'recommendations_data' is a list of recommendation dicts from LLM.
+    'date_str' is the current date for the recommendations.
     """
-    for rec in recommendations:
-        # Create unique ID based on ticker and date
-        rec_id = f"{rec['ticker']}_{date_str}_{rec['recommendation']}"
+    for rec_llm in recommendations_data:
+        # Ensure all necessary fields are present from LLM output
+        rec_for_db = {
+            "company": rec_llm.get("company"),
+            "ticker": rec_llm.get("ticker"),
+            "recommendation": rec_llm.get("recommendation"),
+            "reason": rec_llm.get("reason"),
+            "confidence": rec_llm.get("confidence"),
+            "article_title": rec_llm.get("article_title"),
+            "article_url": rec_llm.get("article_url"),
+            "date": date_str, # Use the provided date_str
+            "timestamp": datetime.now().isoformat(), # Add current timestamp
+            "active": 1 # Default to active
+        }
 
-        # Check if already exists - use a simpler approach
-        # Query by the unique ID we're about to create
-        try:
-            existing = recommendations_collection.get(ids=[rec_id])
-            if existing["ids"]:
-                print(f"[store_recommendations] Recommendation already exists: {rec['ticker']} {rec['recommendation']}")
-                continue
-        except Exception as e:
-            # If ID doesn't exist, that's fine - we'll create it
-            pass
+        # Validate essential fields
+        if not all([rec_for_db["ticker"], rec_for_db["date"], rec_for_db["recommendation"]]):
+            print(f"[store_recommendations_sqlite_wrapper] Skipping record due to missing essential fields (ticker, date, or recommendation): {rec_llm}")
+            continue
 
         # Create embedding of the recommendation text
-        rec_text = f"{rec['company']} {rec['ticker']} {rec['recommendation']} {rec['reason']}"
-        embedding = embed_text([rec_text])[0]
+        # Note: The current get_stock_recommendations doesn't use this embedding for retrieval,
+        # but we store it for potential future use or consistency.
+        rec_text_for_embedding = f"{rec_for_db['company']} {rec_for_db['ticker']} {rec_for_db['recommendation']} {rec_for_db['reason']}"
+        embedding_list = embed_text([rec_text_for_embedding])[0]
 
-        # Store in collection
-        try:
-            print(f"[store_recommendations] Storing recommendation with ID: {rec_id}")
-            recommendations_collection.add(
-            documents=[rec_text],
-            embeddings=[embedding],
-            ids=[rec_id],
-            metadatas=[{
-                "company": rec["company"],
-                "ticker": rec["ticker"],
-                "recommendation": rec["recommendation"],
-                "reason": rec["reason"],
-                "confidence": rec["confidence"],
-                "article_title": rec["article_title"],
-                "article_url": rec["article_url"],
-                "date": date_str,
-                "timestamp": datetime.now().isoformat(),
-                "active": True   # <-- Add this line
-            }]
-            )
-            print(f"[store_recommendations] Stored: {rec['ticker']} - {rec['recommendation']}")
-        except Exception as e:
-            print(f"[store_recommendations] Error storing recommendation ID={rec_id}: {e}")
-            traceback.print_exc()  # This gives you the full context and stack trace
+        db_utils.store_recommendation_sqlite(rec_for_db, embedding_list)
 
-
-def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7):
+def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7, active_only=True):
     """
-    Retrieve stock recommendations with optional filtering
+    Retrieve stock recommendations from SQLite with optional filtering.
+    The days_back parameter is not currently implemented with SQLite date filtering but can be added.
     """
     try:
-        # Get all recommendations first, then filter in Python
-        # ChromaDB's where clause is limited, so we'll do post-filtering
-        results = recommendations_collection.get(
-            include=["documents", "metadatas"],
-            # where={"active": True}
+        # Retrieve from SQLite using db_utils
+        # The db_utils.get_recommendations_sqlite handles active_only by default
+        results = db_utils.get_recommendations_sqlite(
+            ticker=ticker,
+            recommendation_type=recommendation_type,
+            active_only=active_only
         )
 
-
-        # Filter results based on parameters
-        filtered_docs = []
-        filtered_metas = []
-
-        for doc, meta in zip(results["documents"], results["metadatas"]):
-            # Apply filters
-            if ticker and meta.get("ticker") != ticker:
-                continue
-            if recommendation_type and meta.get("recommendation") != recommendation_type:
-                continue
-            if not meta.get("active", True):
-                continue
-            # You can add date filtering here if needed
-            # if days_back and is_older_than(meta.get("date"), days_back):
-            #     continue
-
-            filtered_docs.append(doc)
-            filtered_metas.append(meta)
-
-        # Group by ticker for easier display
+        # Group by ticker for easier display (similar to original logic)
         grouped_recs = defaultdict(list)
-
-        for doc, meta in zip(filtered_docs, filtered_metas):
-            ticker_key = meta["ticker"]
+        for rec_row in results:
+            # rec_row is already a dict because of sqlite3.Row factory
+            ticker_key = rec_row["ticker"]
             grouped_recs[ticker_key].append({
-                "company": meta["company"],
-                "recommendation": meta["recommendation"],
-                "reason": meta["reason"],
-                "confidence": meta["confidence"],
-                "article_title": meta["article_title"],
-                "article_url": meta["article_url"],
-                "date": meta["date"],
-                "timestamp": meta["timestamp"]
+                "company": rec_row["company"],
+                "recommendation": rec_row["recommendation"],
+                "reason": rec_row["reason"],
+                "confidence": rec_row["confidence"],
+                "article_title": rec_row["article_title"],
+                "article_url": rec_row["article_url"],
+                "date": rec_row["date"],
+                "timestamp": rec_row["timestamp"],
+                "id": rec_row["id"] # Pass the unique ID for potential use (e.g., delete)
             })
 
         return dict(grouped_recs)
 
     except Exception as e:
-        print(f"[get_stock_recommendations] Error: {e}")
+        print(f"[get_stock_recommendations] Error retrieving from SQLite: {e}")
+        traceback.print_exc()
         return {}
 
 def get_related_articles_for_stock(ticker, days_back=7):
@@ -964,46 +937,31 @@ def delete_recommendation():
                 date_str = parts[1]
                 chroma_id = f"{ticker}_{date_str}_{recommendation_type}"
 
-                print(f"[delete_recommendation] Attempting to mark ID as inactive: {chroma_id}")
-                try:
-                    # Try to fetch the document
-                    existing = recommendations_collection.get(ids=[chroma_id])
-                    if existing["ids"]:
-                        # Update metadata with active=False
-                        updated_metadata = existing["metadatas"][0]
-                        updated_metadata["active"] = False
-                        recommendations_collection.update(
-                            ids=[chroma_id],
-                            metadatas=[updated_metadata]
-                        )
-                        return jsonify({
-                            "status": "success",
-                            "message": f"Recommendation for {ticker} ({recommendation_type} on {date_str}) marked inactive"
-                        }), 200
-                    else:
-                        return jsonify({"status": "info", "message": "Recommendation not found."}), 404
-                except Exception as e:
-                    print(f"[delete_recommendation] Error updating: {e}")
-                    return jsonify({"status": "error", "message": str(e)}), 500
+                print(f"[delete_recommendation] Attempting to mark ID as inactive in SQLite: {chroma_id}") # Name chroma_id is historical
+                sqlite_id = chroma_id # Use the same ID format for SQLite
 
-        # No rec_id_part — mark all recommendations for the ticker as inactive
-        print(f"[delete_recommendation] No rec_id_part provided. Marking all for ticker {ticker} as inactive.")
-        results = recommendations_collection.get(where={"ticker": ticker})
-        if results["ids"]:
-            updated_metadatas = []
-            for meta in results["metadatas"]:
-                meta["active"] = False
-                updated_metadatas.append(meta)
-            recommendations_collection.update(
-                ids=results["ids"],
-                metadatas=updated_metadatas
-            )
-            return jsonify({"status": "success", "message": f"All recommendations for {ticker} marked as inactive"}), 200
+                if db_utils.mark_recommendation_inactive_sqlite(sqlite_id):
+                    return jsonify({
+                        "status": "success",
+                        "message": f"Recommendation for {ticker} ({recommendation_type} on {date_str}) marked inactive in SQLite"
+                    }), 200
+                else:
+                    # This could mean not found or DB error, db_utils logs details
+                    return jsonify({"status": "info", "message": "Recommendation not found or error updating."}), 404
+            else: # rec_id_part malformed
+                 return jsonify({"status": "error", "message": "Malformed rec_id_part."}), 400
+
+
+        # No rec_id_part — mark all recommendations for the ticker as inactive in SQLite
+        print(f"[delete_recommendation] No rec_id_part. Marking all for ticker {ticker} as inactive in SQLite.")
+        if db_utils.mark_all_ticker_recommendations_inactive_sqlite(ticker):
+            return jsonify({"status": "success", "message": f"All recommendations for {ticker} marked as inactive in SQLite"}), 200
         else:
-            return jsonify({"status": "info", "message": f"No active recommendations found for {ticker}."}), 200
+            # db_utils logs details of the error
+            return jsonify({"status": "error", "message": f"Error marking all recommendations for {ticker} inactive."}), 500
 
     except Exception as e:
-        print(f"[delete_recommendation] Error marking recommendation inactive for {ticker}: {e}")
+        print(f"[delete_recommendation] General error for {ticker}: {e}")
         return jsonify({"status": "error", "message": f"Error updating {ticker}: {str(e)}"}), 500
 
 
