@@ -302,18 +302,18 @@ nav.main-nav .nav-links a.active { /* Added .active class for current page indic
     padding: 1.5rem;
 }
 
-/* Responsive grid for report content - can be adjusted or rely on Tailwind */
+/* Dual column layout for report content */
 #report-content {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.5rem;
 }
-@media (min-width: 640px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
-@media (min-width: 768px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); } }
-@media (min-width: 1024px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
-@media (min-width: 1280px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
-@media (min-width: 1536px) { #report-content { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
-
+@media (min-width: 768px) { 
+    #report-content { 
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    } 
+}
 /* Utility for chat page (from chat.html) */
 .chat-body { /* Applied to body tag via class for specificity */
     background-color: #f3f4f6; /* bg-gray-100 */
