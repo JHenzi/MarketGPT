@@ -1,3 +1,33 @@
 chroma/
 llm_config.json
 venv/
+market_report.md
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+# Ignore virtual environment directories
+venv/
+# Ignore log files
+*.log
+# Ignore coverage reports
+*.coverage
+.coverage.*
+# Ignore build directories
+build/
+dist/
+# Ignore package distribution files
+*.egg
+*.egg-info/
+# Ignore IDE/editor specific files
+.vscode/
+.idea/
+# Ignore macOS specific files
+.DS_Store
+# Ignore Windows specific files
+Thumbs.db
+# Ignore environment variable files
+.env

@@ -142,70 +142,70 @@ Published: Thu, 26 Jun 2025 19:21:35 GMT
 
 ## Innovation & Corporate Growth Events
 
-1. [China's biggest public AI drop since DeepSeek, Baidu's open source Ernie, is about to hit the market](https://www.cnbc.com/2025/06/29/china-biggest-ai-drop-since-deepseek-baidus-ernie-to-hit-market.html)  
+1. [Healthy Returns: What to know about the FDA’s plan to speed up some drug reviews](https://www.cnbc.com/2025/06/20/healthy-returns-fda-drug-reviews.html)  
+Published: Fri, 20 Jun 2025 16:04:03 GMT
+
+2. [China's biggest public AI drop since DeepSeek, Baidu's open source Ernie, is about to hit the market](https://www.cnbc.com/2025/06/29/china-biggest-ai-drop-since-deepseek-baidus-ernie-to-hit-market.html)  
 Published: Sun, 29 Jun 2025 16:35:06 GMT
 
-2. [Chinese battery giant and Tesla supplier CATL is expanding globally: Here’s why it matters](https://www.cnbc.com/2025/06/27/china-battery-giant-catl-is-expanding-globally-heres-why-it-matters.html)  
+3. [Chinese battery giant and Tesla supplier CATL is expanding globally: Here’s why it matters](https://www.cnbc.com/2025/06/27/china-battery-giant-catl-is-expanding-globally-heres-why-it-matters.html)  
 Published: Fri, 27 Jun 2025 12:13:03 GMT
 
-3. [Gabelli Funds highlights the AI stocks to buy as craze continues](https://www.cnbc.com/2025/06/28/gabelli-funds-highlights-the-ai-stocks-to-buy-as-craze-continues.html)  
+4. [Gabelli Funds highlights the AI stocks to buy as craze continues](https://www.cnbc.com/2025/06/28/gabelli-funds-highlights-the-ai-stocks-to-buy-as-craze-continues.html)  
 Published: Sat, 28 Jun 2025 12:48:27 GMT
 
-4. [SoftBank CEO says he's 'all in' on OpenAI, reveals he's long wanted Microsoft's spot as main backer](https://www.cnbc.com/2025/06/27/softbank-ceo-says-he-wanted-to-be-openai-early-investor.html)  
+5. [SoftBank CEO says he's 'all in' on OpenAI, reveals he's long wanted Microsoft's spot as main backer](https://www.cnbc.com/2025/06/27/softbank-ceo-says-he-wanted-to-be-openai-early-investor.html)  
 Published: Fri, 27 Jun 2025 08:03:48 GMT
 
-5. [China's fintech giant Ant doubles down on health care with new AI app — and it wants it to go global](https://www.cnbc.com/2025/06/26/chinas-ant-launches-ai-powered-health-care-app-eyes-global-expansion.html)  
+6. [China's fintech giant Ant doubles down on health care with new AI app — and it wants it to go global](https://www.cnbc.com/2025/06/26/chinas-ant-launches-ai-powered-health-care-app-eyes-global-expansion.html)  
 Published: Thu, 26 Jun 2025 10:59:44 GMT
 
-6. [Adopt or die? How Southeast Asian small businesses are using AI to stay competitive](https://www.cnbc.com/2025/06/26/southeast-asian-small-businesses-using-ai-to-stay-competitive.html)  
+7. [Adopt or die? How Southeast Asian small businesses are using AI to stay competitive](https://www.cnbc.com/2025/06/26/southeast-asian-small-businesses-using-ai-to-stay-competitive.html)  
 Published: Thu, 26 Jun 2025 02:54:19 GMT
 
-7. [Tesla's European car sales nosedive for fifth month as customers switch to Chinese EVs](https://www.cnbc.com/2025/06/25/teslas-european-car-sales-fall-as-customers-switch-to-chinese-evs.html)  
+8. [Tesla's European car sales nosedive for fifth month as customers switch to Chinese EVs](https://www.cnbc.com/2025/06/25/teslas-european-car-sales-fall-as-customers-switch-to-chinese-evs.html)  
 Published: Wed, 25 Jun 2025 15:05:02 GMT
 
-8. [Novo Nordisk ends deal with Hims & Hers over sales of Wegovy copycats; HIMS drops 34%](https://www.cnbc.com/2025/06/23/novo-nordisk-ends-wegovy-deal-with-hims-hers.html)  
+9. [Novo Nordisk ends deal with Hims & Hers over sales of Wegovy copycats; HIMS drops 34%](https://www.cnbc.com/2025/06/23/novo-nordisk-ends-wegovy-deal-with-hims-hers.html)  
 Published: Mon, 23 Jun 2025 20:01:26 GMT
 
-9. [Drone maker AeroVironment shares pop 21% on earnings beat](https://www.cnbc.com/2025/06/25/drones-aerovironment-earnings.html)  
+10. [Drone maker AeroVironment shares pop 21% on earnings beat](https://www.cnbc.com/2025/06/25/drones-aerovironment-earnings.html)  
 Published: Wed, 25 Jun 2025 20:01:44 GMT
-
-10. [Tesla's IPO was 15 years ago. The stock is up almost 300-fold since then](https://www.cnbc.com/2025/06/29/teslas-ipo-was-15-years-ago-the-stock-is-up-300-fold-since-then.html)  
-Published: Sun, 29 Jun 2025 11:00:01 GMT
 
 
 ---
 
 ## Corporate Challenges & Market Weakness
 
-1. [How Ikea is doubling down on price cuts to attract cost-conscious customers](https://www.cnbc.com/2025/06/26/how-ikea-is-doubling-down-on-price-cuts-to-attract-cost-conscious-customers.html)  
+1. [Gap revived its brand identity. Here's what investors are keeping an eye on next](https://www.cnbc.com/2025/06/14/gap-revived-its-identity-heres-why-investors-are-still-cautious.html)  
+Published: Sat, 14 Jun 2025 12:00:01 GMT
+
+2. [How Ikea is doubling down on price cuts to attract cost-conscious customers](https://www.cnbc.com/2025/06/26/how-ikea-is-doubling-down-on-price-cuts-to-attract-cost-conscious-customers.html)  
 Published: Thu, 26 Jun 2025 11:43:32 GMT
 
-2. [CNBC's UK Exchange newsletter: The U.K.'s pension shake-up is facing pushback](https://www.cnbc.com/2025/06/25/cnbcs-uk-exchange-newsletter-the-uks-pension-shake-up-is-facing-pushback.html)  
+3. [CNBC's UK Exchange newsletter: The U.K.'s pension shake-up is facing pushback](https://www.cnbc.com/2025/06/25/cnbcs-uk-exchange-newsletter-the-uks-pension-shake-up-is-facing-pushback.html)  
 Published: Wed, 25 Jun 2025 05:30:01 GMT
 
-3. [Nike stock soars 17% after CEO soothes investors, says recovery is on the horizon](https://www.cnbc.com/2025/06/27/nike-stock-soars-after-better-than-feared-q4-2025-results.html)  
+4. [Nike stock soars 17% after CEO soothes investors, says recovery is on the horizon](https://www.cnbc.com/2025/06/27/nike-stock-soars-after-better-than-feared-q4-2025-results.html)  
 Published: Fri, 27 Jun 2025 18:05:01 GMT
 
-4. [Pixar's 'Elio' is emblematic of a bigger headwind for Hollywood](https://www.cnbc.com/2025/06/26/pixars-elio-is-emblematic-of-a-bigger-headwind-for-hollywood.html)  
+5. [Pixar's 'Elio' is emblematic of a bigger headwind for Hollywood](https://www.cnbc.com/2025/06/26/pixars-elio-is-emblematic-of-a-bigger-headwind-for-hollywood.html)  
 Published: Thu, 26 Jun 2025 13:48:28 GMT
 
-5. [Family offices double down on private credit and infrastructure during private equity slump, survey finds](https://www.cnbc.com/2025/06/26/family-offices-double-down-on-private-credit-and-infrastructure.html)  
+6. [Family offices double down on private credit and infrastructure during private equity slump, survey finds](https://www.cnbc.com/2025/06/26/family-offices-double-down-on-private-credit-and-infrastructure.html)  
 Published: Thu, 26 Jun 2025 13:15:01 GMT
 
-6. [Airport lounges, Europe and premium class are on the table, Southwest CEO says](https://www.cnbc.com/2025/06/25/southwest-airport-lounges-europe-flights-ceo-bob-jordan.html)  
+7. [Airport lounges, Europe and premium class are on the table, Southwest CEO says](https://www.cnbc.com/2025/06/25/southwest-airport-lounges-europe-flights-ceo-bob-jordan.html)  
 Published: Thu, 26 Jun 2025 18:07:42 GMT
 
-7. [McDonald's and Krispy Kreme will end doughnut partnership next month](https://www.cnbc.com/2025/06/24/mcdonalds-and-krispy-kreme-end-doughnut-partnership.html)  
+8. [McDonald's and Krispy Kreme will end doughnut partnership next month](https://www.cnbc.com/2025/06/24/mcdonalds-and-krispy-kreme-end-doughnut-partnership.html)  
 Published: Tue, 24 Jun 2025 15:56:46 GMT
 
-8. [Kroger's shares rise as grocer says shoppers seek lower prices, cook more at home](https://www.cnbc.com/2025/06/20/kroger-kr-q1-2025-earnings.html)  
+9. [Kroger's shares rise as grocer says shoppers seek lower prices, cook more at home](https://www.cnbc.com/2025/06/20/kroger-kr-q1-2025-earnings.html)  
 Published: Fri, 20 Jun 2025 20:04:25 GMT
 
-9. [Darden Restaurants beats earnings estimates, as Olive Garden parent predicts growth in 2026](https://www.cnbc.com/2025/06/20/darden-restaurants-dri-q4-2025-earnings.html)  
+10. [Darden Restaurants beats earnings estimates, as Olive Garden parent predicts growth in 2026](https://www.cnbc.com/2025/06/20/darden-restaurants-dri-q4-2025-earnings.html)  
 Published: Fri, 20 Jun 2025 20:11:32 GMT
-
-10. [Shares of RH jump as luxury retailer takes steps to blunt tariff impact](https://www.cnbc.com/2025/06/12/rh-rh-q1-2025-earnings.html)  
-Published: Fri, 13 Jun 2025 16:15:34 GMT
 
 
 ---
