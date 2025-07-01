@@ -15,3 +15,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# This script counts the number of documents in a specified ChromaDB collection.

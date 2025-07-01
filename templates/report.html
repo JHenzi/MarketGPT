@@ -1,118 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <meta charset="UTF-8">
- <title>MarketGPT Daily Report</title>
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body class="report-page"> <!-- Updated body class -->
-{% include 'partials/navbar.html' %}
+  <meta charset="UTF-8" />
+  <title>MarketGPT Daily Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
 
- <div class="main-content-area w-full px-4 py-10"> <!-- Added main-content-area -->
- <h1 class="text-4xl font-extrabold mb-10 border-b-4 border-blue-600 pb-2">
- 📈 MarketGPT Daily Report
- </h1>
- <div id="report-content">
-{{ report_html | safe }}
- </div>
- </div>
- <script>
-// Convert sections into cards
-document.addEventListener('DOMContentLoaded', function() {
- const reportContent = document.getElementById('report-content');
- const allChildren = Array.from(reportContent.children);
- const sections = [];
- let currentSection = null;
- 
- // Group h2 and following elements into sections
- allChildren.forEach(child => {
- if (child.tagName === 'H2') {
- if (currentSection) {
- sections.push(currentSection);
- }
- currentSection = {
- title: child.textContent.trim(),
- content: []
- };
- } else if (currentSection) {
- currentSection.content.push(child);
- }
- });
- 
- if (currentSection) {
- sections.push(currentSection);
- }
- 
- // Only rebuild if we found H2 sections (preserve demo content otherwise)
- if (sections.length > 0) {
- // Clear and rebuild as cards
- reportContent.innerHTML = '';
- 
- sections.forEach(section => {
- // Create card container
- const card = document.createElement('div');
- card.className = 'section-card';
- 
- // Create header
- const header = document.createElement('div');
- header.className = 'section-header';
- 
- // Add anchor link
- const id = section.title.toLowerCase().replace(/\s+/g, '-');
- header.id = id;
- header.innerHTML = `${section.title} <a href="#${id}" class="text-blue-200 hover:text-white ml-2 text-sm">🔗</a>`;
- 
- // Create content area
- const content = document.createElement('div');
- content.className = 'section-content';
- 
- // Add all content elements
- section.content.forEach(element => {
- content.appendChild(element);
- });
- 
- // Assemble card
- card.appendChild(header);
- card.appendChild(content);
- reportContent.appendChild(card);
- });
- }
- 
- // Apply your existing styling
- // Style each list item as a card
- document.querySelectorAll("#report-content li").forEach(li => {
- li.classList.add(
-"bg-gray-50",
-"shadow-sm",
-"rounded-md",
-"p-4",
-"my-2",
-"border",
-"border-gray-200",
-"hover:bg-gray-100",
-"transition-all"
- );
- });
- 
- // Fix links to look nice
- document.querySelectorAll("#report-content a:not([href^='#'])").forEach(a => {
- a.classList.add("text-blue-600", "hover:underline", "font-medium");
- a.setAttribute("target", "_blank");
- });
- 
- // Format Published date line
- document.querySelectorAll("#report-content li").forEach(li => {
-const lines = li.innerHTML.split("Published:");
-if (lines.length === 2) {
- li.innerHTML = `
- <div class="mb-1">${lines[0].trim()}</div>
- <div class="text-sm text-gray-500">📅 Published: ${lines[1].trim()}</div>
- `;
- }
- });
-});
- </script>
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+
+  {% include 'partials/navbar.html' %}
+
+  <main class="max-w-4xl mx-auto px-6 py-10">
+    <h1 class="text-4xl font-extrabold mb-8 border-b-4 border-blue-600 pb-2">
+      📈 MarketGPT Daily Report
+    </h1>
+
+    <div id="report-content" class="prose max-w-full">
+      {{ report_html | safe }}
+    </div>
+  </main>
+
 </body>
 </html>

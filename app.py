@@ -586,7 +586,7 @@ def generate_market_report(collection, model, top_k=10, output_path="market_repo
                 published = meta.get("published", "Unknown date")
                 # Optionally include similarity score for debugging
                 # report_lines.append(f"{i}. [{title}]({link}) (similarity: {similarity:.3f})  \nPublished: {published}\n")
-                report_lines.append(f"{i}. [{title}]({link})  \nPublished: {published}\n")
+                report_lines.append(f"{i}. [{title}]({link})\n")
             report_lines.append("\n---\n")
 
         # Save the final markdown report
