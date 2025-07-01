@@ -232,34 +232,39 @@ def fetch_and_store(feed_urls, delay_between=1.0):
 
     print(f"[fetch_and_store] Inserted {added} new entries into the database.")
 
-
-
 @app.route("/report")
 def view_market_report():
-    if not os.path.exists("market_report.md"):
+    report_path = "market_report.md"
+
+    if not os.path.exists(report_path):
         return "Report not found.", 404
 
-    with open("market_report.md", "r", encoding="utf-8") as f:
+    with open(report_path, "r", encoding="utf-8") as f:
         report_md = f.read()
 
-    # Optional: Load summary if it exists
+    # Get last modified time and format it
+    last_modified_ts = os.path.getmtime(report_path)
+    last_modified_dt = datetime.fromtimestamp(last_modified_ts)
+    last_modified_str = last_modified_dt.strftime("%B %d, %Y %I:%M:%S %p")
+
+
+    # Optional: summary loading as before...
     summary_md = ""
-    if os.path.exists("market_summary.md"):
-        with open("market_summary.md", "r", encoding="utf-8") as f:
+    summary_path = "market_summary.md"
+    if os.path.exists(summary_path):
+        with open(summary_path, "r", encoding="utf-8") as f:
             summary_md = f.read()
 
-    # Convert both to HTML
     report_html = markdown.markdown(
         report_md, extensions=["extra", "toc", "sane_lists"]
     )
-    summary_html = markdown.markdown(
-        summary_md, extensions=["extra", "toc", "sane_lists"]
-    ) if summary_md else ""
+    summary_html = markdown.markdown(summary_md, extensions=["extra", "toc", "sane_lists"]) if summary_md else ""
 
     return render_template(
         "report.html",
         report_html=report_html,
-        summary_html=summary_html
+        summary_html=summary_html,
+        last_modified=last_modified_str
     )
 
 @app.route("/sources", methods=["GET", "POST"])
@@ -471,8 +476,8 @@ def generate_market_report(collection, model, top_k=10, output_path="market_repo
     Generate market report by first fetching all today's articles, then classifying them
     using sentence transformers similarity scoring.
     """
-    report_lines = ["# MarketGPT Daily Report\n"]
-
+    # report_lines = ["# MarketGPT Daily Report\n"]
+    report_lines = [""]
     try:
         # First, try to get all articles for today without any vector search
         # This avoids the hnswlib KeyError issue
@@ -1085,7 +1090,7 @@ def summarize_market_report(input_path="market_report.md", output_path="market_s
 
     # Step 4: Write output
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write("# MarketGPT Summary\n\n")
+        # f.write("# MarketGPT Summary\n\n")
         f.write(summary.strip())
 
     print(f"[✅] Market summary saved to {output_path}")

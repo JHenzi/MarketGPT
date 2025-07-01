@@ -20,6 +20,7 @@
     <h1 class="text-4xl font-extrabold mb-8 border-b-4 border-blue-600 pb-2">
       📈 MarketGPT Daily Report
     </h1>
+    <p class="text-sm text-gray-500 mb-4">This report was generated on {{ last_modified }}</p>
     {% if summary_html %}
     <div class="summary-section mb-12">
       <h2 class="text-2xl font-bold mb-4">📝 Summary</h2>
@@ -33,6 +34,5 @@
       {{ report_html | safe }}
     </div>
   </main>
-
 </body>
 </html>
