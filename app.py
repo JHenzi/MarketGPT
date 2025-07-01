@@ -60,7 +60,7 @@ def load_llm_config(path="llm_config.json"):
         except Exception as e:
             print(f"[llm_config] Failed to load config, using default. Error: {e}")
     return default_config
-
+# Actually load the LLM config
 llm_config = load_llm_config()
 # Check if the LLM config is valid
 if llm_config["provider"] not in ["local", "openai", "claude"]:
@@ -240,15 +240,27 @@ def view_market_report():
         return "Report not found.", 404
 
     with open("market_report.md", "r", encoding="utf-8") as f:
-        md_content = f.read()
+        report_md = f.read()
 
-    # Convert markdown to HTML
-    html_content = markdown.markdown(
-        md_content,
-        extensions=["extra", "toc", "sane_lists"]
+    # Optional: Load summary if it exists
+    summary_md = ""
+    if os.path.exists("market_summary.md"):
+        with open("market_summary.md", "r", encoding="utf-8") as f:
+            summary_md = f.read()
+
+    # Convert both to HTML
+    report_html = markdown.markdown(
+        report_md, extensions=["extra", "toc", "sane_lists"]
     )
+    summary_html = markdown.markdown(
+        summary_md, extensions=["extra", "toc", "sane_lists"]
+    ) if summary_md else ""
 
-    return render_template("report.html", report_html=html_content)
+    return render_template(
+        "report.html",
+        report_html=report_html,
+        summary_html=summary_html
+    )
 
 @app.route("/sources", methods=["GET", "POST"])
 def sources():
@@ -459,7 +471,7 @@ def generate_market_report(collection, model, top_k=10, output_path="market_repo
     Generate market report by first fetching all today's articles, then classifying them
     using sentence transformers similarity scoring.
     """
-    report_lines = ["# MarketGPT Daily Report\n Generated on: " + today_str + "\n"]
+    report_lines = ["# MarketGPT Daily Report\n"]
 
     try:
         # First, try to get all articles for today without any vector search
@@ -1012,33 +1024,72 @@ def delete_recommendation():
         print(f"[delete_recommendation] Error marking recommendation inactive for {ticker}: {e}")
         return jsonify({"status": "error", "message": f"Error updating {ticker}: {str(e)}"}), 500
 
-def delete_old_recommendations(collection, days_old=3):
-    """
-    Delete recommendations from the collection that are older than the specified number of days.
-    """
-    cutoff_date = datetime.now() - timedelta(days=days_old)
+def mark_old_recommendations_inactive(collection, days_old=3):
+    cutoff = datetime.now() - timedelta(days=days_old)
+    cutoff_str = cutoff.strftime("%Y-%m-%d")
 
-    try:
-        print(f"[delete_old_recommendations] Removing recommendations older than {cutoff_date.date()}...")
-        results = collection.get(include=["metadatas", "ids"])
+    print(f"[cleanup] Looking for recommendations older than {cutoff_str} to mark inactive...")
 
-        to_delete_ids = []
+    results = collection.get(include=["metadatas", "ids", "documents", "embeddings"])
 
-        for idx, metadata in enumerate(results["metadatas"]):
+    updated = 0
+    for _id, meta, doc, embedding in zip(results["ids"], results["metadatas"], results["documents"], results["embeddings"]):
+        if meta.get("date", "") < cutoff_str and meta.get("active", True):
+            new_meta = meta.copy()
+            new_meta["active"] = False
             try:
-                rec_date = parse_date(metadata.get("date", ""))
-                if rec_date.date() < cutoff_date.date():
-                    to_delete_ids.append(results["ids"][idx])
+                collection.update(
+                    ids=[_id],
+                    documents=[doc],
+                    embeddings=[embedding],
+                    metadatas=[new_meta]
+                )
+                updated += 1
             except Exception as e:
-                print(f"[WARNING] Skipping record with bad date: {metadata.get('date')} - {e}")
+                print(f"[cleanup] Failed to update {_id}: {e}")
 
-        if to_delete_ids:
-            collection.delete(ids=to_delete_ids)
-            print(f"[delete_old_recommendations] Deleted {len(to_delete_ids)} old recommendations.")
-        else:
-            print("[delete_old_recommendations] No old recommendations to delete.")
+    print(f"[cleanup] Marked {updated} recommendations as inactive.")
+
+def summarize_market_report(input_path="market_report.md", output_path="market_summary.md"):
+    """
+    Reads the full market report and summarizes it using the configured LLM.
+    """
+    # Step 1: Read report from disk
+    if not os.path.exists(input_path):
+        print(f"[ERROR] File not found: {input_path}")
+        return
+
+    with open(input_path, "r", encoding="utf-8") as f:
+        report_content = f.read()
+
+    # Step 2: Prepare LLM prompt/messages
+    messages = [
+        {"role": "system", "content": "You are a helpful financial analyst assistant."},
+        {"role": "user", "content": (
+            "Please read the following market report and generate a concise summary "
+            "in 6–10 bullet points. Highlight key trends, notable events, and significant shifts "
+            "in market behavior. Avoid unnecessary fluff. Don't offer more actions, advice, help - keep your answer simple\n\n"
+            f"{report_content}"
+        )}
+    ]
+
+    # Step 3: Prepare and send the request to the LLM
+    endpoint, headers, payload = prepare_llm_request(messages)
+    try:
+        response = requests.post(endpoint, json=payload, headers=headers)
+        response.raise_for_status()
+        summary = response.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        print(f"[ERROR] Failed to delete old recommendations: {e}")
+        print(f"[ERROR] Failed to get summary from LLM: {e}")
+        return
+
+    # Step 4: Write output
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("# MarketGPT Summary\n\n")
+        f.write(summary.strip())
+
+    print(f"[✅] Market summary saved to {output_path}")
+
 
 def periodic_fetch_and_report():
     while True:
@@ -1062,7 +1113,13 @@ def periodic_fetch_and_report():
             except Exception as e:
                 print(f"[periodic] Error during generate_market_report: {e}")
                 traceback.print_exc()
-
+            try:
+                print("[periodic] Summarizing report...")
+                summarize_market_report()
+                print("[periodic] Report summarized.")
+            except Exception as e:
+                print(f"[periodic] Error during summarize_market_report: {e}")
+                traceback.print_exc()
             try:
                 print("[periodic] Extracting stock recommendations...")
                 extract_stock_recommendations(collection, model, today_str)
@@ -1072,7 +1129,7 @@ def periodic_fetch_and_report():
                 traceback.print_exc()
             try:
                 print("[periodic] Cleaning up old recommendations...")
-                delete_old_recommendations(recommendations_collection, days_old=3)
+                mark_old_recommendations_inactive(recommendations_collection, days_old=3)
                 print("[periodic] Old recommendations cleaned up.")
             except Exception as e:
                 print(f"[periodic] Error during cleanup: {e}")

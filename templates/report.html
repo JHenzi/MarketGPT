@@ -20,8 +20,16 @@
     <h1 class="text-4xl font-extrabold mb-8 border-b-4 border-blue-600 pb-2">
       📈 MarketGPT Daily Report
     </h1>
-
+    {% if summary_html %}
+    <div class="summary-section mb-12">
+      <h2 class="text-2xl font-bold mb-4">📝 Summary</h2>
+      <div class="prose max-w-none">
+        {{ summary_html | safe }}
+      </div>
+    </div>
+  {% endif %}
     <div id="report-content" class="prose max-w-full">
+        
       {{ report_html | safe }}
     </div>
   </main>
