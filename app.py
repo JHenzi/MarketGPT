@@ -32,6 +32,8 @@ import uuid
 import traceback
 
 
+
+
 #today_str = datetime.now().strftime("%Y-%m-%d")
 today_str = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
@@ -42,6 +44,7 @@ client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_direc
 collection = client.get_or_create_collection(name="marketwatch")
 recommendations_collection = client.get_or_create_collection(name="stock_recommendations")
 
+# Load LLM configuration from JSON file
 def load_llm_config(path="llm_config.json"):
     default_config = {
         "provider": "local",
@@ -450,71 +453,55 @@ CATEGORIES = {
     ],
 }
 
-
-def generate_market_report(collection, model, top_k=10, output_path="market_report.md", today_str=None):
+def generate_market_report(collection, model, top_k=10, output_path="market_report.md", today_str=today_str):
     """
     Generate market report by first fetching all today's articles, then classifying them
     using sentence transformers similarity scoring.
     """
-    report_lines = ["# MarketGPT Daily Report\n"]
+    report_lines = ["# MarketGPT Daily Report\n Generated on: " + today_str + "\n"]
 
     try:
-        # Normalize the target date for comparison
-        target_date = None
+        # First, try to get all articles for today without any vector search
+        # This avoids the hnswlib KeyError issue
         if today_str:
-            target_date = normalize_date_for_comparison(today_str)
-            print(f"[INFO] Looking for articles matching date: {target_date}")
-
-        # Always fetch all articles since date filtering in ChromaDB is unreliable
-        print("[INFO] Fetching all articles from collection...")
-        all_results = collection.get(include=["documents", "metadatas"])
-        
+            try:
+                # Attempt to fetch with date filter
+                all_results = collection.get(
+                    where={"published_date": today_str},
+                    include=["documents", "metadatas"]
+                )
+            except Exception as e:
+                print(f"[WARNING] Date filtering failed: {e}")
+                print("Falling back to fetching all articles...")
+                # Fallback: get all articles if date filtering fails
+                all_results = collection.get(include=["documents", "metadatas"])
+        else:
+            # Get all articles if no date specified
+            all_results = collection.get(include=["documents", "metadatas"])
         print(f"[generate_market_report] Fetched {len(all_results['documents'])} articles from collection.")
-        
         if not all_results["documents"]:
             print("[WARNING] No articles found in database")
             report_lines.append("_No articles found in database._\n")
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(report_lines))
             return
-
         # Combine documents and metadata
         articles = list(zip(all_results["documents"], all_results["metadatas"]))
         print(f"[INFO] Found {len(articles)} total articles")
-
-        # Filter by date if target_date is specified
-        if target_date:
-            print(f"[INFO] Filtering articles by normalized date: {target_date}")
-            
-            # Debug: show some sample dates from the database
-            sample_dates = []
-            for i, (doc, meta) in enumerate(articles[:5]):  # Show first 5
-                db_date = meta.get("published_date", "No date")
-                normalized_db_date = normalize_date_for_comparison(db_date)
-                sample_dates.append(f"  Article {i+1}: '{db_date}' -> '{normalized_db_date}'")
-            
-            if sample_dates:
-                print("[DEBUG] Sample date formats from database:")
-                for sample in sample_dates:
-                    print(sample)
-            
-            # Filter articles
-            filtered_articles = []
-            for doc, meta in articles:
-                db_date = meta.get("published_date")
-                normalized_db_date = normalize_date_for_comparison(db_date)
-                
-                if normalized_db_date == target_date:
-                    filtered_articles.append((doc, meta))
-            
-            articles = filtered_articles
-            print(f"[INFO] After date filtering: {len(articles)} articles")
+        if not articles:
+            report_lines.append("_No articles found for today._\n")
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(report_lines))
+            return
+        # Filter by date if we couldn't do it in the query
+        if today_str:
+            pre_filter_count = len(articles)
+            articles = [(doc, meta) for doc, meta in articles 
+                        if meta.get("published_date") == today_str]
+            print(f"[INFO] Filtered articles by published_date = {today_str}. {len(articles)} of {pre_filter_count} matched.")
 
         if not articles:
-            if target_date:
-                report_lines.append(f"_No articles found for date: {target_date}_\n")
-            else:
-                report_lines.append("_No articles found._\n")
+            report_lines.append("_No matching articles found for today._\n")
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(report_lines))
             return
@@ -542,87 +529,79 @@ def generate_market_report(collection, model, top_k=10, output_path="market_repo
         for category in category_embeddings:
             category_embeddings[category] = np.mean(category_embeddings[category], axis=0)
         print(f"[INFO] Computed embeddings for {len(category_embeddings)} categories")
-        
         # Compute embeddings for all articles
         print("[INFO] Computing article embeddings...")
         article_texts = [doc for doc, _ in articles]
         article_embeddings = model.encode(article_texts)
         print(f"[INFO] Computed embeddings for {len(article_embeddings)} articles")
-        
         # Classify articles into categories
         categorized_articles = defaultdict(list)
         seen_links = set()
-        
+        print("[INFO] Initializing categorized articles...")
         print("[INFO] Classifying articles...")
         for i, (doc, meta) in enumerate(articles):
             link = meta.get("link", "")
             if link in seen_links:
                 continue
-                
+            # print(f"[{i+1}/{len(articles)}] Classifying article: {meta.get('title', 'No title')} ({link})")
             # Find best matching category
             best_category = None
             best_similarity = -1
-            
             # Reshape article embedding for cosine similarity
             article_embedding = article_embeddings[i].reshape(1, -1)
-            
             # Compare with each category embedding
             for category, cat_embedding in category_embeddings.items():
                 similarity = cosine_similarity(
                     article_embedding, 
                     cat_embedding.reshape(1, -1)
                 )[0][0]
-                
+                # print(f"[{i+1}/{len(articles)}] Similarity with category '{category}': {similarity:.3f}")
                 if similarity > best_similarity:
                     best_similarity = similarity
                     best_category = category
-            
-            # Only include if similarity is above threshold
+            # If no category matched, skip this article
+            # Only include if similarity is above a threshold (adjust as needed)
             if best_similarity > 0.3:  # Adjust threshold as needed
                 categorized_articles[best_category].append((doc, meta, best_similarity))
                 seen_links.add(link)
-                
         print(f"[INFO] Classified articles into {len(categorized_articles)} categories")
-        
         # Generate report
         for category in CATEGORIES.keys():
             articles_for_category = categorized_articles.get(category, [])
-            
-            if articles_for_category:
-                # Sort by similarity score (descending)
+            if not articles_for_category:
+            # Sort by similarity score (descending)
                 articles_for_category.sort(key=lambda x: x[2], reverse=True)
-                # Limit to top_k articles
-                articles_for_category = articles_for_category[:top_k]
-            
+            # If no articles matched this category, skip it
+            # Limit to top_k articles
+            articles_for_category = articles_for_category[:top_k]
             print(f"[INFO] Found {len(articles_for_category)} articles for category '{category}'")
-            
+            if not articles_for_category:
+                report_lines.append(f"## {category}\n_No matching articles found for today._\n---\n")
+                continue
             # Add category header
             report_lines.append(f"## {category}\n")
-            
-            if not articles_for_category:
-                report_lines.append("_No matching articles found._\n")
-            else:
-                for i, (doc, meta, similarity) in enumerate(articles_for_category, 1):
-                    title = meta.get("title", "No title")
-                    link = meta.get("link", "#")
-                    published = meta.get("published", "Unknown date")
-                    report_lines.append(f"{i}. [{title}]({link})  \nPublished: {published}\n")
-            
+            for i, (doc, meta, similarity) in enumerate(articles_for_category, 1):
+                title = meta.get("title", "No title")
+                link = meta.get("link", "#")
+                published = meta.get("published", "Unknown date")
+                # Optionally include similarity score for debugging
+                # report_lines.append(f"{i}. [{title}]({link}) (similarity: {similarity:.3f})  \nPublished: {published}\n")
+                report_lines.append(f"{i}. [{title}]({link})  \nPublished: {published}\n")
             report_lines.append("\n---\n")
 
         # Save the final markdown report
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(report_lines))
-            
+        # Print success message
         print(f"[generate_market_report] Report saved to {output_path}")
 
     except Exception as e:
         print(f"[ERROR] Failed to generate report: {e}")
-        import traceback
-        traceback.print_exc()
         report_lines.append(f"_Error generating report: {e}_\n")
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(report_lines))
+
+
 
 # Alternative simpler approach if the above is still too complex
 def generate_market_report_simple(collection, model, top_k=10, output_path="market_report.md", today_str=None):
@@ -743,7 +722,7 @@ def extract_stock_recommendations(collection, model, today_str):
         messages = [
             {
                 "role": "system",
-                "content": """You are a financial analyst. Analyze news articles and identify any stock buy/sell signals.
+                "content": """You are a financial analyst. Analyze news articles and identify any stock buy/sell signals. Be careful to not make up ticker symbols or to suggest buy/sell recommendations on things that are not stocks, bonds, mutual funds, or ETFs. If you are unsure, do not provide a suggestion.
 
 Look for:
 - Company earnings beats/misses
@@ -757,7 +736,7 @@ Look for:
 Respond ONLY with a JSON array of recommendations. Each recommendation should have:
 {
   "company": "Company Name",
-  "ticker": "STOCK_SYMBOL", 
+  "ticker": "STOCK_SYMBOL",
   "recommendation": "BUY" or "SELL",
   "reason": "Brief reason for recommendation",
   "confidence": "HIGH", "MEDIUM", or "LOW",
