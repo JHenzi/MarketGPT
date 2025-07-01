@@ -2,7 +2,8 @@
 # from apscheduler.schedulers.background import BackgroundScheduler
 from chromadb.config import Settings
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.parser import parse as parse_date
 from dateutil import parser as date_parser
 from flask import Flask, jsonify
 from flask import render_template_string
@@ -1011,6 +1012,33 @@ def delete_recommendation():
         print(f"[delete_recommendation] Error marking recommendation inactive for {ticker}: {e}")
         return jsonify({"status": "error", "message": f"Error updating {ticker}: {str(e)}"}), 500
 
+def delete_old_recommendations(collection, days_old=3):
+    """
+    Delete recommendations from the collection that are older than the specified number of days.
+    """
+    cutoff_date = datetime.now() - timedelta(days=days_old)
+
+    try:
+        print(f"[delete_old_recommendations] Removing recommendations older than {cutoff_date.date()}...")
+        results = collection.get(include=["metadatas", "ids"])
+
+        to_delete_ids = []
+
+        for idx, metadata in enumerate(results["metadatas"]):
+            try:
+                rec_date = parse_date(metadata.get("date", ""))
+                if rec_date.date() < cutoff_date.date():
+                    to_delete_ids.append(results["ids"][idx])
+            except Exception as e:
+                print(f"[WARNING] Skipping record with bad date: {metadata.get('date')} - {e}")
+
+        if to_delete_ids:
+            collection.delete(ids=to_delete_ids)
+            print(f"[delete_old_recommendations] Deleted {len(to_delete_ids)} old recommendations.")
+        else:
+            print("[delete_old_recommendations] No old recommendations to delete.")
+    except Exception as e:
+        print(f"[ERROR] Failed to delete old recommendations: {e}")
 
 def periodic_fetch_and_report():
     while True:
@@ -1042,9 +1070,18 @@ def periodic_fetch_and_report():
             except Exception as e:
                 print(f"[periodic] Error during extract_stock_recommendations: {e}")
                 traceback.print_exc()
-
+            try:
+                print("[periodic] Cleaning up old recommendations...")
+                delete_old_recommendations(recommendations_collection, days_old=3)
+                print("[periodic] Old recommendations cleaned up.")
+            except Exception as e:
+                print(f"[periodic] Error during cleanup: {e}")
+                traceback.print_exc()
             print("[periodic] Sleeping for 15 minutes...")
             time.sleep(15 * 60)  # 15 minutes
+        except KeyboardInterrupt:
+            print("[periodic] Periodic task interrupted by user.")
+            break
 
         except Exception as e:
             print(f"[periodic] Unexpected top-level error: {e}")
