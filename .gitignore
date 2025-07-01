@@ -2,6 +2,7 @@ chroma/
 llm_config.json
 venv/
 market_report.md
+market_summary.md
 # Ignore Python cache files
 __pycache__/
 *.pyc
