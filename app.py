@@ -2,7 +2,7 @@
 # from apscheduler.schedulers.background import BackgroundScheduler
 from chromadb.config import Settings
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from dateutil.parser import parse as parse_date
 from dateutil import parser as date_parser
 from flask import Flask, jsonify
@@ -390,19 +390,12 @@ Please answer this question:
             }
         ]
 
-        # Call LLM
-        # response = requests.post(
-        #     "http://192.168.1.220:1234/v1/chat/completions",
-        #     json={
-        #         "messages": messages,
-        #         "temperature": 0.7,
-        #     }
-        # )
+        # Call the LLM endpoint
         endpoint, headers, payload = prepare_llm_request(messages, temperature=0.7)
         response = requests.post(endpoint, headers=headers, json=payload)
         response.raise_for_status()
 
-
+        # Process the response
         raw_answer = response.json()["choices"][0]["message"]["content"]
         cleaned_answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE)
         rendered_answer = Markup(markdown.markdown(cleaned_answer))
@@ -860,23 +853,18 @@ def store_recommendations(recommendations, date_str):
             traceback.print_exc()  # This gives you the full context and stack trace
 
 
-def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7):
+def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7, today_only=True):
     """
     Retrieve stock recommendations with optional filtering
     """
     try:
-        # Get all recommendations first, then filter in Python
-        # ChromaDB's where clause is limited, so we'll do post-filtering
         results = recommendations_collection.get(
             include=["documents", "metadatas"],
-            # where={"active": True}
         )
-
-
-        # Filter results based on parameters
+        
         filtered_docs = []
         filtered_metas = []
-
+        
         for doc, meta in zip(results["documents"], results["metadatas"]):
             # Apply filters
             if ticker and meta.get("ticker") != ticker:
@@ -885,16 +873,27 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
                 continue
             if not meta.get("active", True):
                 continue
-            # You can add date filtering here if needed
-            # if days_back and is_older_than(meta.get("date"), days_back):
-            #     continue
-
+            
+            # Date filtering - using the 'date' field instead of 'timestamp'
+            if today_only:
+                try:
+                    # Get today's date as string in same format
+                    today_str = date.today().isoformat()  # Returns "2025-07-01"
+                    record_date = meta.get("date", "")
+                    
+                    if record_date != today_str:
+                        continue
+                except (ValueError, TypeError):
+                    continue
+            elif days_back:
+                # Your existing days_back logic here
+                pass
+            
             filtered_docs.append(doc)
             filtered_metas.append(meta)
-
-        # Group by ticker for easier display
+        
+        # Rest of your grouping code...
         grouped_recs = defaultdict(list)
-
         for doc, meta in zip(filtered_docs, filtered_metas):
             ticker_key = meta["ticker"]
             grouped_recs[ticker_key].append({
@@ -907,9 +906,8 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
                 "date": meta["date"],
                 "timestamp": meta["timestamp"]
             })
-
+        
         return dict(grouped_recs)
-
     except Exception as e:
         print(f"[get_stock_recommendations] Error: {e}")
         return {}
@@ -1132,10 +1130,11 @@ def periodic_fetch_and_report():
             except Exception as e:
                 print(f"[periodic] Error during extract_stock_recommendations: {e}")
                 traceback.print_exc()
-            try:
-                print("[periodic] Cleaning up old recommendations...")
-                mark_old_recommendations_inactive(recommendations_collection, days_old=3)
-                print("[periodic] Old recommendations cleaned up.")
+            # Turn this back on to clean up old recommendations every X days on the repeating cycle
+            # try:
+            #     print("[periodic] Cleaning up old recommendations...")
+            #     mark_old_recommendations_inactive(recommendations_collection, days_old=3)
+            #     print("[periodic] Old recommendations cleaned up.")
             except Exception as e:
                 print(f"[periodic] Error during cleanup: {e}")
                 traceback.print_exc()

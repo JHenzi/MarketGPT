@@ -32,3 +32,4 @@ dist/
 Thumbs.db
 # Ignore environment variable files
 .env
+.vscode
