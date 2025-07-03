@@ -781,7 +781,8 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
             # Clean up the response
             # Remove any <think> tags - first line commented out didn't work for DeepSeek + Qwen 3
             # raw_response = re.sub(r"<think>.*?</think>", "", raw_response, flags=re.DOTALL | re.IGNORECASE)
-            raw_response = re.sub(r"<\s*think\s*>.*?<\s*/\s*think\s*>", "", raw_response, flags=re.DOTALL | re.IGNORECASE)
+            #raw_response = re.sub(r"<\s*think\s*>.*?<\s*/\s*think\s*>", "", raw_response, flags=re.DOTALL | re.IGNORECASE)
+            raw_response = re.sub(r"<\s*/?\s*think\s*>", "", raw_response, flags=re.IGNORECASE)
             # Remove any markdown formatting
             raw_response = re.sub(r"```json\s*([\s\S]*?)\s*```", r"\1", raw_response)
             # Clean up any extra whitespace
@@ -1084,7 +1085,8 @@ def summarize_market_report(input_path="market_report.md", output_path="market_s
 
         response.raise_for_status()
         summary = response.json()["choices"][0]["message"]["content"]
-        summary = re.sub(r"<\s*think\s*>.*?<\s*/\s*think\s*>", "", summary, flags=re.DOTALL | re.IGNORECASE)
+        #summary = re.sub(r"<\s*think\s*>.*?<\s*/\s*think\s*>", "", summary, flags=re.DOTALL | re.IGNORECASE)
+        summary = re.sub(r"<\s*/?\s*think\s*>", "", raw_response, flags=re.IGNORECASE)
     except Exception as e:
         print(f"[ERROR] Failed to get summary from LLM: {e}")
         return
