@@ -157,7 +157,7 @@ def fetch_rss_multiple(feed_urls):
     for url in feed_urls:
         parsed_feed = feedparser.parse(url)
         entries = parsed_feed.entries
-        print(f"[fetch_rss_multiple] Fetched {len(entries)} entries from {url}")
+        # print(f"[fetch_rss_multiple] Fetched {len(entries)} entries from {url}")
         all_entries.extend(entries)
     return all_entries
 
@@ -861,10 +861,10 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
         results = recommendations_collection.get(
             include=["documents", "metadatas"],
         )
-        
+
         filtered_docs = []
         filtered_metas = []
-        
+
         for doc, meta in zip(results["documents"], results["metadatas"]):
             # Apply filters
             if ticker and meta.get("ticker") != ticker:
@@ -873,14 +873,14 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
                 continue
             if not meta.get("active", True):
                 continue
-            
+
             # Date filtering - using the 'date' field instead of 'timestamp'
             if today_only:
                 try:
                     # Get today's date as string in same format
                     today_str = date.today().isoformat()  # Returns "2025-07-01"
                     record_date = meta.get("date", "")
-                    
+
                     if record_date != today_str:
                         continue
                 except (ValueError, TypeError):
@@ -888,10 +888,10 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
             elif days_back:
                 # Your existing days_back logic here
                 pass
-            
+
             filtered_docs.append(doc)
             filtered_metas.append(meta)
-        
+
         # Rest of your grouping code...
         grouped_recs = defaultdict(list)
         for doc, meta in zip(filtered_docs, filtered_metas):
@@ -906,7 +906,7 @@ def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7
                 "date": meta["date"],
                 "timestamp": meta["timestamp"]
             })
-        
+
         return dict(grouped_recs)
     except Exception as e:
         print(f"[get_stock_recommendations] Error: {e}")
@@ -1135,9 +1135,9 @@ def periodic_fetch_and_report():
             #     print("[periodic] Cleaning up old recommendations...")
             #     mark_old_recommendations_inactive(recommendations_collection, days_old=3)
             #     print("[periodic] Old recommendations cleaned up.")
-            except Exception as e:
-                print(f"[periodic] Error during cleanup: {e}")
-                traceback.print_exc()
+            #except Exception as e:
+            #    print(f"[periodic] Error during cleanup: {e}")
+            #    traceback.print_exc()
             print("[periodic] Sleeping for 15 minutes...")
             time.sleep(15 * 60)  # 15 minutes
         except KeyboardInterrupt:
