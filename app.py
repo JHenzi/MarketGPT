@@ -163,7 +163,7 @@ def fetch_rss_multiple(feed_urls):
 
 
 def embed_text(texts):
-    return model.encode(texts).tolist()
+    return [emb.tolist() for emb in model.encode(texts)]
 
 def fetch_and_store(feed_urls, delay_between=1.0):
     print("[fetch_and_store] Starting fetch...")
@@ -779,8 +779,9 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
 
             raw_response = response.json()["choices"][0]["message"]["content"]
             # Clean up the response
-            # Remove any <think> tags
-            raw_response = re.sub(r"<think>.*?</think>", "", raw_response, flags=re.DOTALL | re.IGNORECASE)
+            # Remove any <think> tags - first line commented out didn't work for DeepSeek + Qwen 3
+            # raw_response = re.sub(r"<think>.*?</think>", "", raw_response, flags=re.DOTALL | re.IGNORECASE)
+            raw_response = re.sub(r"<\s*think\s*>.*?<\s*/\s*think\s*>", "", raw_response, flags=re.DOTALL | re.IGNORECASE)
             # Remove any markdown formatting
             raw_response = re.sub(r"```json\s*([\s\S]*?)\s*```", r"\1", raw_response)
             # Clean up any extra whitespace
@@ -1070,7 +1071,7 @@ def summarize_market_report(input_path="market_report.md", output_path="market_s
         {"role": "system", "content": "You are a helpful financial analyst assistant."},
         {"role": "user", "content": (
             "Please read the following market report and generate a concise summary "
-            "in 6–10 bullet points. Highlight key trends, notable events, and significant shifts "
+            "in 6-10 bullet points. Highlight key trends, notable events, and significant shifts "
             "in market behavior. Avoid unnecessary fluff. Don't offer more actions, advice, help - keep your answer simple\n\n"
             f"{report_content}"
         )}
@@ -1080,8 +1081,10 @@ def summarize_market_report(input_path="market_report.md", output_path="market_s
     endpoint, headers, payload = prepare_llm_request(messages)
     try:
         response = requests.post(endpoint, json=payload, headers=headers)
+
         response.raise_for_status()
         summary = response.json()["choices"][0]["message"]["content"]
+        summary = re.sub(r"<\s*think\s*>.*?<\s*/\s*think\s*>", "", summary, flags=re.DOTALL | re.IGNORECASE)
     except Exception as e:
         print(f"[ERROR] Failed to get summary from LLM: {e}")
         return

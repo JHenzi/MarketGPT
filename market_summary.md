@@ -1,32 +1,42 @@
 <think>
-Okay, let me break this down. The user wants a concise 6-10 bullet point summary of the market report, focusing on key trends and events without fluff. They specifically asked to avoid advice or actions.
+Okay, let's start by understanding what the user is asking for. They want a concise summary of a market report in 6-10 bullet points, focusing on key trends, notable events, and shifts in market behavior. The user specified to avoid any unnecessary fluff or advice.
 
-First, I need to scan the entire report quickly. The main themes here seem to revolve around tariffs affecting markets, especially auto and tech sectors like Tesla, Rivian. Also inflation/interest rates are high on the list with mortgage refinance surges. Significant shifts include tech stocks like Robinhood breaking records, layoffs at major companies like Microsoft, and geopolitical stuff with Trump's policies affecting trade.
+First, I need to parse through all the provided links and articles to identify the core themes. The sections cover various aspects like monetary policy, stock indices, fixed income, innovation events, corporate challenges, and international trade.
 
-The user seems to be a professional - they're likely in finance or analysis. No fluff means using direct language without opinions. They want the core market trends distilled into a tight format.
+Looking at the first section on Monetary Policy & Inflation: There's a surge in mortgage refinances due to falling rates. Tariffs affecting department stores are mentioned, which likely impacts consumer inflation.
 
-Market behavior has clearly shifted lately due to tariffs, high interest rates hurting refinancing opportunities, and tech companies struggling with declining deliveries. The fixed income markets are showing volatility too.
+In the stock market indices, several points stand out. Tech companies like Datadog and Coinbase are performing well due to index inclusion or acquisitions. Robinhood's surge after the S&P snub is notable. European markets are rising, but UK bond yields spike due to political uncertainty.
 
-When preparing the bullet points, I should include:
-- Tariff impacts on industries and consumer prices
-- Interest rate movements affecting mortgage applications/refinancing (CNBC links show surges)
-- Tech sector performance with notable examples like Robinhood's growth 
-- Major company events - layoffs, new leadership at Intel etc.
-- Geopolitical developments affecting trade and stock performance
+Fixed income highlights the volatility in debt markets with rising UK borrowing costs and student loan implications under new bills.
 
-The fixed income markets show UK tensions, which might indicate broader economic concerns. Student loan details seem less relevant unless tied to larger trends.
+ Corporate challenges include sector declines like EVs, Tesla's delivery dips, and job cuts affecting Microsoft. Trump's policies have mixed effects here.
 
-Need to ensure all bullet points are supported by the provided links. For instance, Robinhood's record growth ties back to CNBC articles.
+Innovation events focus on AI-related impacts, new CEOs in automotive, and chip tax credits under Trump's bill.
 
-The key trends seem to be: tariffs slowing economic activity, high interest rates affecting consumer behavior, tech sector volatility due to policies like tariffs and layoffs. Significant shifts include banking performance with dividend increases by Wells Fargo etc.
+The International Trade section ties into global economic trends with tariffs, trade deals, and dollar weakness affecting markets.
 
-The bullet points need to stay tight - one sentence max. No fluff or opinions.
+Now, organizing these into key trends: Crypto/tech is booming, influenced by S&P inclusion and acquisitions. EV sector faces headwinds due to tariffs, soft demand, and competition. European markets are strong but with political risks in the UK affecting yields. Fixed income shows a spike due to political uncertainty.
+
+Need to ensure each bullet is distinct and captures the essence without overlap. Avoid mentioning specific stocks unless they represent a broader trend, like Coinbase's inclusion representing crypto strength.
+
+Check for any significant events not mentioned elsewhere: Trump's trade deal with Vietnam, deportations affecting Constellation Brands. Also, the ADP report showing a job loss deficit.
+
+Make sure to link events logically: For example, UK bond yields spike due to political turmoil affecting borrowing costs.
+
+Ensure each bullet addresses either a trend or an event, avoiding analysis. Keep it factual and concise.
+
+Double-check the user's requirement: no fluff, only key trends, events, shifts. Avoid predictions or advice.
+
+Finally, review the bullet points to ensure they flow logically from broader market trends to specific events and sector impacts.
 </think>
-Here is a concise 6-bullet point summary of the market report:
+Here is a concise summary of the market report:
 
-*   **Tariff Impact:** US tariffs on imports like autos are significantly influencing interest rate expectations and consumer prices at retail stores.
-*   **Inflation/Higher Rates:** Persistently higher interest rates are being debated; however, demand for mortgage refinancing has surged due to lower effective rates.
-*   **Retail Sales Downturn:** Tariffs are directly hurting demand for US EVs like Rivian and contributing to falling vehicle deliveries (e.g., Tesla).
-*   **Major Layoffs:** Significant employee reductions are reported at large tech companies like Microsoft, impacting investor sentiment.
-*   **Tech/Fin Sector Turmoil:** Layoffs at "Big Tech" (MSFT) contrast with positive analyst moves on other names, while banks face leadership changes and challenges.
-*   **Market Shifts:** Increased volatility due to trade uncertainty (impacting stocks like COIN/RRB) and evolving US policy.
+*   **Key Trend:** Broader stock rally continued into July, notably boosted by Robinhood and European indices.
+*   **Event:** S&P 500 inclusion drove Datadog's stock price significantly higher.
+*   **Market Shift:** Tech stocks remain strong, with Coinbase climbing following its acquisition of LiquiFi.
+*   **Sector Headwind:** EV market faces pressure due to price wars, import tariffs (like on Modelo beer), and soft demand impacting Lucid.
+*   **Market Factor:** Crypto assets gained value, linked to both S&P inclusion and crypto stocks generally.
+*   **Significant Event:** UK bond yields surged due to political uncertainty regarding the finance minister's future, reflecting market volatility.
+*   **US Policy Impact:** Proposed US legislative changes under the "big beautiful bill" include increased student loan burdens and larger tax credits for chipmakers.
+*   **Market Sentiment:** European markets showed gains, though UK bond yields spiked as mentioned above.
+*   **Retail Sector Pressure:** Tariffs are impacting consumer prices, with specific examples from department stores.
