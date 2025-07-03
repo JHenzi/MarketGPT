@@ -397,7 +397,10 @@ Please answer this question:
 
         # Process the response
         raw_answer = response.json()["choices"][0]["message"]["content"]
-        cleaned_answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE)
+        #cleaned_answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE)
+        # Strip everything before and including a closing </think> tag
+        cleaned_answer = re.sub(r"^.*?</\s*think\s*>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE).strip()
+
         rendered_answer = Markup(markdown.markdown(cleaned_answer))
 
         reveal_reason_text = "\n\n---\n\n".join([
@@ -788,6 +791,10 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
             # Clean up any extra whitespace
             raw_response = raw_response.strip()
             # Parse JSON response
+            print(f"[extract_stock_recommendations] Raw response: {raw_response}")
+            if not raw_response:
+                print("[extract_stock_recommendations] No recommendations found in response")
+                continue
             try:
                 batch_recommendations = json.loads(raw_response)
                 if isinstance(batch_recommendations, list):
@@ -1069,24 +1076,40 @@ def summarize_market_report(input_path="market_report.md", output_path="market_s
 
     # Step 2: Prepare LLM prompt/messages
     messages = [
-        {"role": "system", "content": "You are a helpful financial analyst assistant."},
-        {"role": "user", "content": (
-            "Please read the following market report and generate a concise summary "
-            "in 6-10 bullet points. Highlight key trends, notable events, and significant shifts "
-            "in market behavior. Avoid unnecessary fluff. Don't offer more actions, advice, help - keep your answer simple\n\n"
+    {
+        "role": "system",
+        "content": (
+            "You are an expert market strategist who generates insights for professional traders and fund managers. "
+            "Your job is to analyze market news and extract useful, actionable patterns based on real companies, sectors, or commodities. "
+            "Never invent ticker symbols, and do not provide recommendations on things that cannot be traded (like 'Congress')."
+        )
+    },
+    {
+        "role": "user",
+        "content": (
+            "Analyze the following market report and provide a concise summary in 6–10 bullet points. "
+            "Focus on sector movement, key stock or commodity events, and macroeconomic factors driving behavior. "
+            "Extract meaningful relationships between events (e.g. 'food stocks down due to rising oil prices'). "
+            "Avoid vague or generic commentary. Only refer to real, investable sectors, commodities, or companies. "
+            "Do not include financial advice, disclaimers, or language like 'as an AI'."
+            "\n\n"
             f"{report_content}"
-        )}
-    ]
+        )
+    }
+]
+
 
     # Step 3: Prepare and send the request to the LLM
     endpoint, headers, payload = prepare_llm_request(messages)
     try:
         response = requests.post(endpoint, json=payload, headers=headers)
-
         response.raise_for_status()
         summary = response.json()["choices"][0]["message"]["content"]
         #summary = re.sub(r"<\s*think\s*>.*?<\s*/\s*think\s*>", "", summary, flags=re.DOTALL | re.IGNORECASE)
-        summary = re.sub(r"<\s*/?\s*think\s*>", "", raw_response, flags=re.IGNORECASE)
+        #summary = re.sub(r"<\s*/?\s*think\s*>", "", summary, flags=re.IGNORECASE)
+        # Strip everything before and including a closing </think> tag
+        summary = re.sub(r"^.*?</\s*think\s*>", "", summary, flags=re.DOTALL | re.IGNORECASE).strip()
+
     except Exception as e:
         print(f"[ERROR] Failed to get summary from LLM: {e}")
         return
