@@ -38,6 +38,12 @@ import traceback
 #today_str = datetime.now().strftime("%Y-%m-%d")
 today_str = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
+def get_today_str():
+    """Return today's date string in YYYY-MM-DD format using New York timezone."""
+    return datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+
+today_str = get_today_str()
+
 app = Flask(__name__)
 
 # Setup Chroma
