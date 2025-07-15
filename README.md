@@ -32,11 +32,13 @@ The application follows a multi-step pipeline:
 
 ~~The Market Report is not outputing anything! There is a key error when we add a where. clause for today's date. Removing it still doesn't generate a file. Unsure when and how this broke but worth refactoring the entire code here.~~
 
-- [X] Fix Market Report Generation Function
+- [x] Fix Market Report Generation Function
 
 ~~We need a "/" route.~~
 
-- [X] Add "/" route
+- [x] Add "/" route
+
+July 14th, 2025: **The stock recommendations needs debugged.** The logs show that the LLM is returning valid looking JSON but when we visit the page we don't see any recommendations. We should probably just make the easy pivot to storing recommendations in SQLite or something similar, it's too hard to debug ChromaDB for this usage.
 
 ---
 
@@ -91,6 +93,7 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
    - `llm_config.json.localLLM` (for local models like LM Studio, Ollama)
    - `llm_config.json.openai` (for OpenAI API)
    - `llm_config.json.claude` (for Anthropic Claude API)
+
 2. **Create `llm_config.json`:** Copy your chosen template and rename it to `llm_config.json`. For example:
 
    ```bash
@@ -102,6 +105,7 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
    # If using OpenAI
    cp llm_config.json.openai llm_config.json
    ```
+
 3. **Edit `llm_config.json`:**
 
    - Open `llm_config.json` in a text editor.
@@ -115,6 +119,7 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
        "api_key": null
      }
      ```
+
    - **For OpenAI:** Replace `"YOUR_OPENAI_API_KEY_HERE"` with your actual OpenAI API key. You can also change the `model` (e.g., `"gpt-4o-mini"`, `"gpt-3.5-turbo"`).
 
      ```json
@@ -125,6 +130,7 @@ The main application (`app.py`) uses an `llm_config.json` file to connect to you
        "api_key": "YOUR_OPENAI_API_KEY_HERE"
      }
      ```
+
    - **For Claude:** Replace `"YOUR_CLAUDE_API_KEY_HERE"` with your actual Anthropic API key. Update the `model` if needed (e.g., `"claude-3-sonnet-20240229"`).
 
      ```json
