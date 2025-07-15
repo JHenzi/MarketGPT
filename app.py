@@ -821,51 +821,51 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
 
 def store_recommendations(recommendations, date_str):
     """
-    Store stock recommendations in ChromaDB
+    Store stock recommendations in ChromaDB using upsert to avoid duplicates.
     """
+    if not recommendations:
+        return
+
+    rec_ids = []
+    rec_texts = []
+    rec_metadatas = []
+
     for rec in recommendations:
-        # Create unique ID based on ticker and date
         rec_id = f"{rec['ticker']}_{date_str}_{rec['recommendation']}"
-
-        # Check if already exists - use a simpler approach
-        # Query by the unique ID we're about to create
-        try:
-            existing = recommendations_collection.get(ids=[rec_id])
-            if existing["ids"]:
-                print(f"[store_recommendations] Recommendation already exists: {rec['ticker']} {rec['recommendation']}")
-                continue
-        except Exception as e:
-            # If ID doesn't exist, that's fine - we'll create it
-            pass
-
-        # Create embedding of the recommendation text
         rec_text = f"{rec['company']} {rec['ticker']} {rec['recommendation']} {rec['reason']}"
-        embedding = embed_text([rec_text])[0]
+        
+        rec_ids.append(rec_id)
+        rec_texts.append(rec_text)
+        rec_metadatas.append({
+            "company": rec["company"],
+            "ticker": rec["ticker"],
+            "recommendation": rec["recommendation"],
+            "reason": rec["reason"],
+            "confidence": rec["confidence"],
+            "article_title": rec["article_title"],
+            "article_url": rec["article_url"],
+            "date": date_str,
+            "timestamp": datetime.now().isoformat(),
+            "active": True
+        })
 
-        # Store in collection
-        try:
-            print(f"[store_recommendations] Storing recommendation with ID: {rec_id}")
-            recommendations_collection.add(
-            documents=[rec_text],
-            embeddings=[embedding],
-            ids=[rec_id],
-            metadatas=[{
-                "company": rec["company"],
-                "ticker": rec["ticker"],
-                "recommendation": rec["recommendation"],
-                "reason": rec["reason"],
-                "confidence": rec["confidence"],
-                "article_title": rec["article_title"],
-                "article_url": rec["article_url"],
-                "date": date_str,
-                "timestamp": datetime.now().isoformat(),
-                "active": True   # <-- Add this line
-            }]
-            )
-            print(f"[store_recommendations] Stored: {rec['ticker']} - {rec['recommendation']}")
-        except Exception as e:
-            print(f"[store_recommendations] Error storing recommendation ID={rec_id}: {e}")
-            traceback.print_exc()  # This gives you the full context and stack trace
+    if not rec_ids:
+        return
+
+    embeddings = embed_text(rec_texts)
+
+    try:
+        print(f"[store_recommendations] Upserting {len(rec_ids)} recommendations...")
+        recommendations_collection.upsert(
+            ids=rec_ids,
+            documents=rec_texts,
+            embeddings=embeddings,
+            metadatas=rec_metadatas
+        )
+        print(f"[store_recommendations] Upserted {len(rec_ids)} recommendations successfully.")
+    except Exception as e:
+        print(f"[store_recommendations] Error upserting recommendations: {e}")
+        traceback.print_exc()
 
 
 def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7, today_only=True):
