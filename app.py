@@ -13,6 +13,18 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from zoneinfo import ZoneInfo
+# SQLite for recommendations
+from db_utils import (
+    init_recommendations_db, 
+    store_recommendations_sqlite, 
+    get_recommendations_sqlite,
+    get_todays_recommendations,
+    get_recommendations_by_date,
+    mark_recommendation_inactive_sqlite,
+    mark_ticker_recommendations_inactive_sqlite,
+    cleanup_old_recommendations,
+    get_recommendation_stats
+)
 import chromadb
 import feedparser
 import json
@@ -46,10 +58,13 @@ today_str = get_today_str()
 
 app = Flask(__name__)
 
-# Setup Chroma
+# Setup Chroma (for articles only)
 client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma"))
 collection = client.get_or_create_collection(name="marketwatch")
-recommendations_collection = client.get_or_create_collection(name="stock_recommendations")
+
+# Initialize SQLite database for recommendations
+init_recommendations_db()
+print("[INIT] SQLite recommendations database initialized")
 
 # Load LLM configuration from JSON file
 def load_llm_config(path="llm_config.json"):
@@ -821,108 +836,30 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
 
 def store_recommendations(recommendations, date_str):
     """
-    Store stock recommendations in ChromaDB using upsert to avoid duplicates.
+    Store stock recommendations in SQLite database.
     """
     if not recommendations:
         return
-
-    rec_ids = []
-    rec_texts = []
-    rec_metadatas = []
-
-    for rec in recommendations:
-        rec_id = f"{rec['ticker']}_{date_str}_{rec['recommendation']}"
-        rec_text = f"{rec['company']} {rec['ticker']} {rec['recommendation']} {rec['reason']}"
-        
-        rec_ids.append(rec_id)
-        rec_texts.append(rec_text)
-        rec_metadatas.append({
-            "company": rec["company"],
-            "ticker": rec["ticker"],
-            "recommendation": rec["recommendation"],
-            "reason": rec["reason"],
-            "confidence": rec["confidence"],
-            "article_title": rec["article_title"],
-            "article_url": rec["article_url"],
-            "date": date_str,
-            "timestamp": datetime.now().isoformat(),
-            "active": True
-        })
-
-    if not rec_ids:
-        return
-
-    embeddings = embed_text(rec_texts)
-
+    
     try:
-        print(f"[store_recommendations] Upserting {len(rec_ids)} recommendations...")
-        recommendations_collection.upsert(
-            ids=rec_ids,
-            documents=rec_texts,
-            embeddings=embeddings,
-            metadatas=rec_metadatas
-        )
-        print(f"[store_recommendations] Upserted {len(rec_ids)} recommendations successfully.")
+        store_recommendations_sqlite(recommendations, date_str)
+        print(f"[store_recommendations] Stored {len(recommendations)} recommendations for {date_str}")
     except Exception as e:
-        print(f"[store_recommendations] Error upserting recommendations: {e}")
+        print(f"[store_recommendations] Error storing recommendations: {e}")
         traceback.print_exc()
 
 
 def get_stock_recommendations(ticker=None, recommendation_type=None, days_back=7, today_only=True):
     """
-    Retrieve stock recommendations with optional filtering
+    Retrieve stock recommendations from SQLite with optional filtering
     """
     try:
-        results = recommendations_collection.get(
-            include=["documents", "metadatas"],
+        return get_recommendations_sqlite(
+            ticker=ticker,
+            recommendation_type=recommendation_type,
+            today_only=today_only,
+            active_only=True
         )
-
-        filtered_docs = []
-        filtered_metas = []
-
-        for doc, meta in zip(results["documents"], results["metadatas"]):
-            # Apply filters
-            if ticker and meta.get("ticker") != ticker:
-                continue
-            if recommendation_type and meta.get("recommendation") != recommendation_type:
-                continue
-            if not meta.get("active", True):
-                continue
-
-            # Date filtering - using the 'date' field instead of 'timestamp'
-            if today_only:
-                try:
-                    # Get today's date as string in same format
-                    today_str = date.today().isoformat()  # Returns "2025-07-01"
-                    record_date = meta.get("date", "")
-
-                    if record_date != today_str:
-                        continue
-                except (ValueError, TypeError):
-                    continue
-            elif days_back:
-                # Your existing days_back logic here
-                pass
-
-            filtered_docs.append(doc)
-            filtered_metas.append(meta)
-
-        # Rest of your grouping code...
-        grouped_recs = defaultdict(list)
-        for doc, meta in zip(filtered_docs, filtered_metas):
-            ticker_key = meta["ticker"]
-            grouped_recs[ticker_key].append({
-                "company": meta["company"],
-                "recommendation": meta["recommendation"],
-                "reason": meta["reason"],
-                "confidence": meta["confidence"],
-                "article_title": meta["article_title"],
-                "article_url": meta["article_url"],
-                "date": meta["date"],
-                "timestamp": meta["timestamp"]
-            })
-
-        return dict(grouped_recs)
     except Exception as e:
         print(f"[get_stock_recommendations] Error: {e}")
         return {}
@@ -958,30 +895,128 @@ def get_related_articles_for_stock(ticker, days_back=7):
 @app.route("/recommendations")
 def view_recommendations():
     """
-    Display stock buy/sell recommendations
+    Display stock buy/sell recommendations - defaults to today's recommendations
     """
     rec_type = request.args.get("type")  # "BUY" or "SELL"
     ticker = request.args.get("ticker")
+    date_filter = request.args.get("date")  # YYYY-MM-DD format
+    today_only = request.args.get("today", "true").lower() == "true"  # Default to true
+    show_all = request.args.get("all", "false").lower() == "true"  # Explicit all parameter
 
-    recommendations = get_stock_recommendations(
-        ticker=ticker,
-        recommendation_type=rec_type
-    )
+    if show_all:
+        # Show all recommendations when explicitly requested
+        recommendations = get_stock_recommendations(
+            ticker=ticker,
+            recommendation_type=rec_type,
+            today_only=False
+        )
+        today_only = False
+    elif date_filter:
+        # Show recommendations for specific date
+        recommendations = get_recommendations_by_date(date_filter)
+        today_only = False
+        # Apply additional filters if needed
+        if rec_type or ticker:
+            filtered_recs = {}
+            for t, recs in recommendations.items():
+                if ticker and t != ticker:
+                    continue
+                filtered_recommendations = []
+                for rec in recs:
+                    if rec_type and rec["recommendation"] != rec_type:
+                        continue
+                    filtered_recommendations.append(rec)
+                if filtered_recommendations:
+                    filtered_recs[t] = filtered_recommendations
+            recommendations = filtered_recs
+    else:
+        # Default: show today's recommendations
+        recommendations = get_todays_recommendations()
+        today_only = True
+        # Apply additional filters if needed
+        if rec_type or ticker:
+            filtered_recs = {}
+            for t, recs in recommendations.items():
+                if ticker and t != ticker:
+                    continue
+                filtered_recommendations = []
+                for rec in recs:
+                    if rec_type and rec["recommendation"] != rec_type:
+                        continue
+                    filtered_recommendations.append(rec)
+                if filtered_recommendations:
+                    filtered_recs[t] = filtered_recommendations
+            recommendations = filtered_recs
 
     # Get related articles for each recommended stock
     stock_data = {}
-    for ticker, recs in recommendations.items():
-        related_articles = get_related_articles_for_stock(ticker)
-        stock_data[ticker] = {
+    for ticker_key, recs in recommendations.items():
+        related_articles = get_related_articles_for_stock(ticker_key)
+        stock_data[ticker_key] = {
             "recommendations": recs,
             "related_articles": related_articles[:5]  # Limit to 5 most relevant
         }
 
+    # Get recommendation statistics for the template
+    stats = get_recommendation_stats()
+
     return render_template("recommendations.html",
                             stock_data=stock_data,
                             filter_type=rec_type,
-                            filter_ticker=ticker
+                            filter_ticker=ticker,
+                            filter_date=date_filter,
+                            today_only=today_only,
+                            today_date=datetime.now().strftime("%B %d, %Y"),
+                            stats=stats
                             )
+
+@app.route("/api/recommendations/today")
+def api_todays_recommendations():
+    """
+    API endpoint to get today's recommendations as JSON
+    """
+    try:
+        recommendations = get_todays_recommendations()
+        stats = get_recommendation_stats()
+        
+        return jsonify({
+            "status": "success",
+            "date": date.today().isoformat(),
+            "stats": stats,
+            "recommendations": recommendations
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route("/api/recommendations/date/<date_str>")
+def api_recommendations_by_date(date_str):
+    """
+    API endpoint to get recommendations for a specific date as JSON
+    """
+    try:
+        # Validate date format
+        datetime.strptime(date_str, "%Y-%m-%d")
+        
+        recommendations = get_recommendations_by_date(date_str)
+        
+        return jsonify({
+            "status": "success",
+            "date": date_str,
+            "recommendations": recommendations
+        }), 200
+    except ValueError:
+        return jsonify({
+            "status": "error",
+            "message": "Invalid date format. Use YYYY-MM-DD"
+        }), 400
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 @app.route("/recommendations/delete", methods=["POST"])
 def delete_recommendation():
@@ -998,43 +1033,25 @@ def delete_recommendation():
             if len(parts) == 2:
                 recommendation_type = parts[0]
                 date_str = parts[1]
-                chroma_id = f"{ticker}_{date_str}_{recommendation_type}"
+                sqlite_id = f"{ticker}_{date_str}_{recommendation_type}"
 
-                print(f"[delete_recommendation] Attempting to mark ID as inactive: {chroma_id}")
-                try:
-                    # Try to fetch the document
-                    existing = recommendations_collection.get(ids=[chroma_id])
-                    if existing["ids"]:
-                        # Update metadata with active=False
-                        updated_metadata = existing["metadatas"][0]
-                        updated_metadata["active"] = False
-                        recommendations_collection.update(
-                            ids=[chroma_id],
-                            metadatas=[updated_metadata]
-                        )
-                        return jsonify({
-                            "status": "success",
-                            "message": f"Recommendation for {ticker} ({recommendation_type} on {date_str}) marked inactive"
-                        }), 200
-                    else:
-                        return jsonify({"status": "info", "message": "Recommendation not found."}), 404
-                except Exception as e:
-                    print(f"[delete_recommendation] Error updating: {e}")
-                    return jsonify({"status": "error", "message": str(e)}), 500
+                print(f"[delete_recommendation] Attempting to mark ID as inactive: {sqlite_id}")
+                success = mark_recommendation_inactive_sqlite(sqlite_id)
+                
+                if success:
+                    return jsonify({
+                        "status": "success",
+                        "message": f"Recommendation for {ticker} ({recommendation_type} on {date_str}) marked inactive"
+                    }), 200
+                else:
+                    return jsonify({"status": "info", "message": "Recommendation not found."}), 404
 
         # No rec_id_part — mark all recommendations for the ticker as inactive
         print(f"[delete_recommendation] No rec_id_part provided. Marking all for ticker {ticker} as inactive.")
-        results = recommendations_collection.get(where={"ticker": ticker})
-        if results["ids"]:
-            updated_metadatas = []
-            for meta in results["metadatas"]:
-                meta["active"] = False
-                updated_metadatas.append(meta)
-            recommendations_collection.update(
-                ids=results["ids"],
-                metadatas=updated_metadatas
-            )
-            return jsonify({"status": "success", "message": f"All recommendations for {ticker} marked as inactive"}), 200
+        affected = mark_ticker_recommendations_inactive_sqlite(ticker)
+        
+        if affected > 0:
+            return jsonify({"status": "success", "message": f"All {affected} recommendations for {ticker} marked as inactive"}), 200
         else:
             return jsonify({"status": "info", "message": f"No active recommendations found for {ticker}."}), 200
 
@@ -1042,31 +1059,15 @@ def delete_recommendation():
         print(f"[delete_recommendation] Error marking recommendation inactive for {ticker}: {e}")
         return jsonify({"status": "error", "message": f"Error updating {ticker}: {str(e)}"}), 500
 
-def mark_old_recommendations_inactive(collection, days_old=3):
-    cutoff = datetime.now() - timedelta(days=days_old)
-    cutoff_str = cutoff.strftime("%Y-%m-%d")
-
-    print(f"[cleanup] Looking for recommendations older than {cutoff_str} to mark inactive...")
-
-    results = collection.get(include=["metadatas", "ids", "documents", "embeddings"])
-
-    updated = 0
-    for _id, meta, doc, embedding in zip(results["ids"], results["metadatas"], results["documents"], results["embeddings"]):
-        if meta.get("date", "") < cutoff_str and meta.get("active", True):
-            new_meta = meta.copy()
-            new_meta["active"] = False
-            try:
-                collection.update(
-                    ids=[_id],
-                    documents=[doc],
-                    embeddings=[embedding],
-                    metadatas=[new_meta]
-                )
-                updated += 1
-            except Exception as e:
-                print(f"[cleanup] Failed to update {_id}: {e}")
-
-    print(f"[cleanup] Marked {updated} recommendations as inactive.")
+def mark_old_recommendations_inactive(days_old=3):
+    """Mark old recommendations as inactive using SQLite."""
+    try:
+        affected = cleanup_old_recommendations(days_old)
+        print(f"[cleanup] Marked {affected} old recommendations as inactive.")
+        return affected
+    except Exception as e:
+        print(f"[cleanup] Error during cleanup: {e}")
+        return 0
 
 def summarize_market_report(input_path="market_report.md", output_path="market_summary.md"):
     """
@@ -1165,13 +1166,13 @@ def periodic_fetch_and_report():
                 print(f"[periodic] Error during extract_stock_recommendations: {e}")
                 traceback.print_exc()
             # Turn this back on to clean up old recommendations every X days on the repeating cycle
-            # try:
-            #     print("[periodic] Cleaning up old recommendations...")
-            #     mark_old_recommendations_inactive(recommendations_collection, days_old=3)
-            #     print("[periodic] Old recommendations cleaned up.")
-            #except Exception as e:
-            #    print(f"[periodic] Error during cleanup: {e}")
-            #    traceback.print_exc()
+            try:
+                print("[periodic] Cleaning up old recommendations...")
+                mark_old_recommendations_inactive(days_old=3)
+                print("[periodic] Old recommendations cleaned up.")
+            except Exception as e:
+                print(f"[periodic] Error during cleanup: {e}")
+                traceback.print_exc()
             print("[periodic] Sleeping for 15 minutes...")
             time.sleep(15 * 60)  # 15 minutes
         except KeyboardInterrupt:

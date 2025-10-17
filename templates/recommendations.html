@@ -16,17 +16,42 @@
     <div class="main-content-area max-w-5xl mx-auto px-4 py-10">
         <div class="header">
             <h1>📊 Stock Recommendations</h1>
-            <p>AI-powered buy and sell signals from market news</p>
+            {% if today_only %}
+                <p>Today's AI-powered buy and sell signals from market news</p>
+                <div style="color: #666; font-size: 14px; margin-top: 5px;">
+                    <span>📅 {{ today_date }}</span>
+                </div>
+            {% elif filter_date %}
+                <p>AI-powered buy and sell signals from {{ filter_date }}</p>
+            {% else %}
+                <p>AI-powered buy and sell signals from market news</p>
+            {% endif %}
         </div>
 
         <div class="filters">
-        <div class="filter-group">
-            <a href="/recommendations" class="filter-btn {{ 'active' if not filter_type else '' }}">All</a>
-            <a href="/recommendations?type=BUY" class="filter-btn {{ 'active' if filter_type == 'BUY' else '' }}">Buy Signals</a>
-            <a href="/recommendations?type=SELL" class="filter-btn {{ 'active' if filter_type == 'SELL' else '' }}">Sell Signals</a>
-            <a href="/recommendations?type=HOLD" class="filter-btn {{ 'active' if filter_type == 'HOLD' else '' }}">Hold Signals</a>
+            <!-- Time Period Filter -->
+            <div class="filter-group">
+                {% if today_only and not filter_type %}
+                    <a href="/recommendations" class="filter-btn active">Today</a>
+                {% else %}
+                    <a href="/recommendations?today=true" class="filter-btn">Today</a>
+                {% endif %}
+                <a href="/recommendations?all=true" class="filter-btn {{ 'active' if not today_only and not filter_date else '' }}">All Time</a>
+            </div>
+            
+            <!-- Recommendation Type Filter -->
+            <div class="filter-group">
+                {% set base_url = '/recommendations?today=true' if today_only else '/recommendations?all=true' %}
+                {% if not filter_type %}
+                    <a href="{{ base_url }}" class="filter-btn active">All Types</a>
+                {% else %}
+                    <a href="{{ base_url }}" class="filter-btn">All Types</a>
+                {% endif %}
+                <a href="{{ base_url }}&type=BUY" class="filter-btn {{ 'active' if filter_type == 'BUY' else '' }}">Buy Signals</a>
+                <a href="{{ base_url }}&type=SELL" class="filter-btn {{ 'active' if filter_type == 'SELL' else '' }}">Sell Signals</a>
+                <a href="{{ base_url }}&type=HOLD" class="filter-btn {{ 'active' if filter_type == 'HOLD' else '' }}">Hold Signals</a>
+            </div>
         </div>
-    </div>
 
     {% if stock_data %}
         <!-- Statistics - Fixed calculation -->
@@ -125,8 +150,16 @@
         {% endfor %}
     {% else %}
         <div class="no-data">
-            <h3>No recommendations found</h3>
-            <p>Check back later as the system analyzes more news articles.</p>
+            {% if today_only %}
+                <h3>No recommendations for today</h3>
+                <p>No new buy/sell signals generated today. <a href="/recommendations?all=true">View all historical recommendations</a></p>
+            {% elif filter_date %}
+                <h3>No recommendations found for {{ filter_date }}</h3>
+                <p>No recommendations were generated on this date. <a href="/recommendations">View today's recommendations</a></p>
+            {% else %}
+                <h3>No recommendations found</h3>
+                <p>No recommendations match your current filters. <a href="/recommendations">View today's recommendations</a></p>
+            {% endif %}
         </div>
     {% endif %}
 
