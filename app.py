@@ -1,6 +1,5 @@
 # app.py
 # from apscheduler.schedulers.background import BackgroundScheduler
-from chromadb.config import Settings
 from collections import defaultdict
 from datetime import datetime, timedelta, date
 from dateutil.parser import parse as parse_date
@@ -62,9 +61,18 @@ today_str = get_today_str()
 
 app = Flask(__name__)
 
-# Setup Chroma (for articles only)
-client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma"))
-collection = client.get_or_create_collection(name="marketwatch")
+# Setup Chroma (for articles only) - Using new API (ChromaDB 0.4+)
+# The new API uses PersistentClient instead of Client(Settings(...))
+try:
+    client = chromadb.PersistentClient(path="./chroma")
+    collection = client.get_or_create_collection(name="marketwatch")
+    print("[INIT] ChromaDB initialized with new API")
+except Exception as e:
+    print(f"[ERROR] Failed to initialize ChromaDB: {e}")
+    print("[ERROR] If you see a deprecation error, you may need to:")
+    print("  1. Remove the old ./chroma directory: rm -rf ./chroma")
+    print("  2. Or migrate existing data: pip install chroma-migrate && chroma-migrate")
+    sys.exit(1)
 
 # Initialize SQLite database for recommendations
 init_recommendations_db()
@@ -1331,8 +1339,11 @@ def periodic_fetch_and_report():
             except Exception as e:
                 print(f"[periodic] Error during cleanup: {e}")
                 traceback.print_exc()
-            print("[periodic] Sleeping for 15 minutes...")
-            time.sleep(15 * 60)  # 15 minutes
+            # Get fetch interval from environment variable, default to 30 minutes
+            fetch_interval_minutes = int(os.getenv("NEWS_FETCH_INTERVAL_MINUTES", "30"))
+            fetch_interval_seconds = fetch_interval_minutes * 60
+            print(f"[periodic] Sleeping for {fetch_interval_minutes} minutes...")
+            time.sleep(fetch_interval_seconds)
         except KeyboardInterrupt:
             print("[periodic] Periodic task interrupted by user.")
             break

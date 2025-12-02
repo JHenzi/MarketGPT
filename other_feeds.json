@@ -1,0 +1,396 @@
+{
+  "feeds": {
+    "crypto": [
+      {
+        "url": "https://cointelegraph.com/rss",
+        "enabled": true,
+        "priority": 1
+      },
+      {
+        "url": "https://decrypt.co/feed",
+        "enabled": true,
+        "priority": 1
+      },
+      {
+        "url": "https://coindesk.com/feed/",
+        "enabled": false,
+        "priority": 2,
+        "note": "Currently rate-limited (HTTP 429)"
+      }
+    ],
+    "finance": [
+      {
+        "url": "https://feeds.bloomberg.com/markets/news.rss",
+        "enabled": true,
+        "priority": 1
+      },
+      {
+        "url": "https://seekingalpha.com/feed.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "Seeking Alpha"
+      },
+      {
+        "url": "https://www.ft.com/rss/home",
+        "enabled": true,
+        "priority": 1,
+        "note": "Financial Times"
+      },
+      {
+        "url": "https://fortune.com/feed/fortune-feeds/?id=3230629",
+        "enabled": true,
+        "priority": 1,
+        "note": "Fortune"
+      },
+      {
+        "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
+        "enabled": true,
+        "priority": 1,
+        "note": "Dow Jones World News"
+      }
+    ],
+    "tech": [
+      {
+        "url": "https://techcrunch.com/feed/",
+        "enabled": true,
+        "priority": 1
+      },
+      {
+        "url": "https://www.theverge.com/rss/index.xml",
+        "enabled": true,
+        "priority": 1
+      },
+      {
+        "url": "https://arstechnica.com/feed/",
+        "enabled": true,
+        "priority": 1
+      },
+      {
+        "url": "https://www.wired.com/feed/",
+        "enabled": true,
+        "priority": 1,
+        "note": "Wired"
+      },
+      {
+        "url": "https://www.engadget.com/rss.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "Engadget"
+      },
+      {
+        "url": "https://www.thenextweb.com/feed/",
+        "enabled": true,
+        "priority": 1,
+        "note": "The Next Web"
+      },
+      {
+        "url": "https://kotaku.com/rss",
+        "enabled": true,
+        "priority": 1,
+        "note": "Kotaku"
+      },
+      {
+        "url": "https://www.cnet.com/rss/all/",
+        "enabled": true,
+        "priority": 1,
+        "note": "CNET"
+      },
+      {
+        "url": "https://venturebeat.com/feed/",
+        "enabled": true,
+        "priority": 1,
+        "note": "VentureBeat"
+      }
+    ],
+    "business": [
+      {
+        "url": "http://feeds.hbr.org/harvardbusiness",
+        "enabled": true,
+        "priority": 1,
+        "note": "Harvard Business Review"
+      },
+      {
+        "url": "https://www.fastcompany.com/latest/rss?truncated=true",
+        "enabled": true,
+        "priority": 1,
+        "note": "Fast Company"
+      }
+    ],
+    "entertainment": [
+      {
+        "url": "https://www.billboard.com/feed/",
+        "enabled": true,
+        "priority": 1,
+        "note": "Billboard"
+      },
+      {
+        "url": "https://www.rollingstone.com/feed/",
+        "enabled": true,
+        "priority": 1,
+        "note": "Rolling Stone"
+      },
+      {
+        "url": "https://www.tmz.com/rss.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "TMZ"
+      },
+      {
+        "url": "https://www.gq.com/feed/rss",
+        "enabled": true,
+        "priority": 1,
+        "note": "GQ"
+      },
+      {
+        "url": "https://www.nme.com/feed",
+        "enabled": true,
+        "priority": 1,
+        "note": "NME"
+      }
+    ],
+    "sports": [
+      {
+        "url": "https://www.espn.com/espn/rss/news",
+        "enabled": true,
+        "priority": 1,
+        "note": "ESPN"
+      }
+    ],
+    "general": [
+      {
+        "url": "https://feeds.bbci.co.uk/news/rss.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "BBC News - General"
+      },
+      {
+        "url": "http://feeds.abcnews.com/abcnews/topstories",
+        "enabled": true,
+        "priority": 1,
+        "note": "ABC News - Top Stories"
+      },
+      {
+        "url": "https://abcnews.go.com/abcnews/topstories",
+        "enabled": true,
+        "priority": 0,
+        "note": "ABC News - Top Stories (Alternative)"
+      },
+      {
+        "url": "http://www.npr.org/rss/rss.php?id=1001",
+        "enabled": true,
+        "priority": 1,
+        "note": "NPR - National News"
+      },
+      {
+        "url": "https://feeds.npr.org/1002/rss.xml",
+        "enabled": true,
+        "priority": 0,
+        "note": "NPR - News"
+      },
+      {
+        "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "New York Times - Home Page"
+      },
+      {
+        "url": "http://feeds.nbcnews.com/feeds/topstories",
+        "enabled": true,
+        "priority": 1,
+        "note": "NBC News - Top Stories"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/msnbc/public/news",
+        "enabled": true,
+        "priority": 0,
+        "note": "MSNBC - Public News"
+      },
+      {
+        "url": "http://feeds.foxnews.com/foxnews/latest",
+        "enabled": true,
+        "priority": 1,
+        "note": "Fox News - Latest Headlines"
+      },
+      {
+        "url": "https://moxie.foxnews.com/google-publisher/latest.xml",
+        "enabled": true,
+        "priority": 0,
+        "note": "Fox News - Latest (Alternative)"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/news",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - Public News"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/world",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - World News"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/us",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - US News"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/politics",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - Politics News"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/business",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - Business News"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/technology",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - Technology News"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/science",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - Science News"
+      },
+      {
+        "url": "https://feeds.nbcnews.com/nbcnews/public/health",
+        "enabled": true,
+        "priority": 0,
+        "note": "NBC News - Health News"
+      },
+      {
+        "url": "https://www.cbsnews.com/latest/rss/main",
+        "enabled": true,
+        "priority": 1,
+        "note": "CBS News - Main News"
+      },
+      {
+        "url": "https://feeds.skynews.com/feeds/rss/world.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "Sky News - World News"
+      },
+      {
+        "url": "https://feeds.skynews.com/feeds/rss/home.xml",
+        "enabled": true,
+        "priority": 0,
+        "note": "Sky News - Home"
+      },
+      {
+        "url": "https://news.un.org/feed/subscribe/en/news/region/global/feed/rss.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "UN News - Global News"
+      },
+      {
+        "url": "https://www.theguardian.com/world/rss",
+        "enabled": true,
+        "priority": 1,
+        "note": "The Guardian - World News"
+      },
+      {
+        "url": "https://www.theguardian.com/us-news/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - US News"
+      },
+      {
+        "url": "https://www.theguardian.com/politics/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - Politics"
+      },
+      {
+        "url": "https://www.theguardian.com/business/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - Business"
+      },
+      {
+        "url": "https://www.theguardian.com/technology/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - Technology"
+      },
+      {
+        "url": "https://www.theguardian.com/science/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - Science"
+      },
+      {
+        "url": "https://www.theguardian.com/health/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - Health"
+      },
+      {
+        "url": "https://www.theguardian.com/environment/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - Environment"
+      },
+      {
+        "url": "https://www.theguardian.com/media/rss",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Guardian - Media"
+      },
+      {
+        "url": "https://www.theatlantic.com/feed/",
+        "enabled": true,
+        "priority": 1,
+        "note": "The Atlantic"
+      },
+      {
+        "url": "https://www.theatlantic.com/feed/all/",
+        "enabled": true,
+        "priority": 0,
+        "note": "The Atlantic - All"
+      },
+      {
+        "url": "https://www.telegraph.co.uk/rss.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "The Telegraph"
+      },
+      {
+        "url": "https://globalnews.ca/feed/",
+        "enabled": true,
+        "priority": 1,
+        "note": "Global News (Canada)"
+      },
+      {
+        "url": "https://www.newyorker.com/feed/everything",
+        "enabled": true,
+        "priority": 1,
+        "note": "The New Yorker"
+      },
+      {
+        "url": "https://www.politico.com/rss/politicopicks.xml",
+        "enabled": true,
+        "priority": 1,
+        "note": "Politico"
+      },
+      {
+        "url": "https://talkingpointsmemo.com/feed",
+        "enabled": true,
+        "priority": 1,
+        "note": "Talking Points Memo"
+      }
+    ]
+  },
+  "settings": {
+    "fetch_cooldown_minutes": 5,
+    "max_headlines_per_fetch": 100,
+    "hours_back": 24,
+    "embedding_model": "all-MiniLM-L6-v2"
+  }
+}

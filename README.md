@@ -6,7 +6,7 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 
 ![Recommendations](/images/recommendations.png)
 
-- **Automated News Aggregation**: Fetches the latest news from multiple financial RSS feeds (e.g., CNBC).
+- **Automated News Aggregation**: Fetches the latest news from multiple financial RSS feeds (Bloomberg, Financial Times, Seeking Alpha, TechCrunch, and more - see `news_sources.json`).
 - **AI-Powered Analysis (Configurable LLM)**: The core application (`app.py`) uses a Large Language Model (LLM) for features like Q&A and stock recommendations. This is configurable via an `llm_config.json` file, allowing you to use providers like OpenAI, Anthropic Claude, or a local LLM (e.g., via LM Studio).
 - **Vector-Based Semantic Search**: Stores articles in a ChromaDB vector database, allowing users to search for news based on concepts, not just keywords.
 - **Daily Market Report**: Automatically categorizes today's news into key market areas (e.g., "Interest Rates," "Sector News," "Global Markets") and generates a daily report.
@@ -20,7 +20,7 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 
 The application follows a multi-step pipeline:
 
-1. **Fetch**: A background process periodically scrapes RSS feeds for new articles.
+1. **Fetch**: A background process periodically scrapes RSS feeds for new articles. The fetch interval is configurable via the `NEWS_FETCH_INTERVAL_MINUTES` environment variable (default: 30 minutes). See Configuration section below.
 2. **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database. The database is automatically created if it doesn't exist. If you encounter issues or want to start fresh with news articles, you can use the `delete_db.py` script (see Helper Scripts). Stock recommendations are stored in a separate ChromaDB collection.
 3. **Analyze & Recommend (via `app.py`)**:
    - The main application's background tasks analyze the day's news using the LLM configured in `llm_config.json` to extract and store stock recommendations.
@@ -84,67 +84,63 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure the LLM for `app.py`
+### 3. Configure the Application
 
-The main application (`app.py`) uses an `llm_config.json` file to connect to your chosen Large Language Model.
+#### LLM Configuration (Recommended: Use `.env` file)
 
-1. **Choose a configuration template:** In the root directory, you'll find example configuration files:
+**Preferred Method: Environment Variables**
 
-   - `llm_config.json.localLLM` (for local models like LM Studio, Ollama)
-   - `llm_config.json.openai` (for OpenAI API)
-   - `llm_config.json.claude` (for Anthropic Claude API)
-
-2. **Create `llm_config.json`:** Copy your chosen template and rename it to `llm_config.json`. For example:
-
+1. **Create `.env` file:**
    ```bash
-   # If using a local LLM
-   cp llm_config.json.localLLM llm_config.json
+   cp .env.example .env
    ```
 
+2. **Edit `.env` file** with your configuration:
    ```bash
-   # If using OpenAI
-   cp llm_config.json.openai llm_config.json
+   # Choose your LLM provider
+   LLM_PROVIDER=ollama  # or openai, claude, local
+   
+   # For Ollama
+   OLLAMA_ENDPOINT=http://localhost:11434/v1/chat/completions
+   OLLAMA_MODEL=llama3.2
+   
+   # For OpenAI
+   # OPENAI_API_KEY=sk-your-key-here
+   # OPENAI_MODEL=gpt-4
+   
+   # Application port (default: 5070)
+   PORT=5070
+   
+   # News fetch interval in minutes (default: 30)
+   NEWS_FETCH_INTERVAL_MINUTES=30
    ```
 
-3. **Edit `llm_config.json`:**
+**Legacy Method: JSON Configuration**
 
-   - Open `llm_config.json` in a text editor.
-   - **For local LLM:** Update the `endpoint` if your local server uses a different address (e.g., `http://localhost:11434/v1/chat/completions` for Ollama). The `model` field can often be left as `"default"` or set to a specific model name if your server requires it. `api_key` can be `null`.
+The application also supports `llm_config.json` for backward compatibility, but **API keys should never be stored in JSON files** - use `.env` instead. See `ENV_SETUP.md` for detailed configuration options.
 
-     ```json
-     {
-       "provider": "local",
-       "endpoint": "http://localhost:1234/v1/chat/completions",
-       "model": "default",
-       "api_key": null
-     }
-     ```
+#### News Sources Configuration
 
-   - **For OpenAI:** Replace `"YOUR_OPENAI_API_KEY_HERE"` with your actual OpenAI API key. You can also change the `model` (e.g., `"gpt-4o-mini"`, `"gpt-3.5-turbo"`).
+Edit `news_sources.json` to customize RSS feeds. The default configuration includes:
+- Financial news: Bloomberg, Financial Times, Seeking Alpha, Fortune, Dow Jones
+- Business: Harvard Business Review, Fast Company
+- Technology: TechCrunch, The Verge, Ars Technica, Wired, VentureBeat
+- Crypto: CoinTelegraph, Decrypt
 
-     ```json
-     {
-       "provider": "openai",
-       "endpoint": "https://api.openai.com/v1/chat/completions",
-       "model": "gpt-4o-mini",
-       "api_key": "YOUR_OPENAI_API_KEY_HERE"
-     }
-     ```
+**Note:** The application focuses on finance, business, tech, and crypto feeds relevant for stock analysis. Entertainment, sports, and general news (politics) are excluded.
 
-   - **For Claude:** Replace `"YOUR_CLAUDE_API_KEY_HERE"` with your actual Anthropic API key. Update the `model` if needed (e.g., `"claude-3-sonnet-20240229"`).
+#### Fetch Interval Configuration
 
-     ```json
-     {
-       "provider": "claude",
-       "endpoint": "https://api.anthropic.com/v1/messages",
-       "model": "claude-3-opus-20240229",
-       "api_key": "YOUR_CLAUDE_API_KEY_HERE"
-     }
-     ```
+The background task that fetches news runs periodically. You can adjust the interval:
 
-     _(Note: The Claude endpoint and model might vary based on API version and chosen model. Refer to Anthropic's documentation.)_
+- **Environment Variable:** Set `NEWS_FETCH_INTERVAL_MINUTES` in your `.env` file (default: 30 minutes)
+- **Recommended:** 30 minutes provides a good balance between freshness and system load
+- **Adjust as needed:** For more frequent updates, set a lower value (e.g., 15 minutes). For less frequent updates, set a higher value (e.g., 60 minutes)
 
-The `app.py` will automatically load this configuration when it starts.
+The fetch interval can be adjusted based on your needs:
+- **More frequent (15-20 min):** Better for active trading, but higher system load
+- **Moderate (30 min):** Good balance (default)
+- **Less frequent (60+ min):** Lower system load, suitable for casual monitoring
 
 ### 4. Run the Application
 
@@ -154,15 +150,15 @@ Start the Flask web server. A background thread will automatically start to fetc
 python app.py
 ```
 
-The application will be available at `http://0.0.0.0:5020`.
+The application will be available at `http://localhost:5070` (or the port specified in your `.env` file).
 
-The first time you run it, the background process will begin fetching and storing articles. This may take a few minutes. Subsequent reports and recommendations will be generated from this data.
+The first time you run it, the background process will begin fetching and storing articles. This may take a few minutes. Subsequent reports and recommendations will be generated from this data. The background task will fetch new articles every 30 minutes by default (configurable via `NEWS_FETCH_INTERVAL_MINUTES` in `.env`).
 
 ---
 
 ## 🛠️ Usage
 
-Navigate to `http://localhost:5020` in your browser.
+Navigate to `http://localhost:5070` (or your configured port) in your browser.
 
 - **📊 Report**: View the latest daily market report, categorized by topic.
 - **💡 Recommendations**: See a list of stocks with AI-generated BUY/SELL recommendations based on the news.
