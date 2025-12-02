@@ -41,7 +41,11 @@
  </form>
 
 <div id="answerContent" class="prose prose-sm sm:prose lg:prose-lg max-w-none text-gray-800">
-    {% if answer %}
+    {% if error %}
+      <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg">
+        <strong>Error:</strong> {{ error }}
+      </div>
+    {% elif answer %}
       {{ answer | safe }}
     {% else %}
       <!-- Empty or loading state -->
@@ -66,6 +70,23 @@
     const questionInput = document.getElementById("questionInput");
     const loadingIndicator = document.getElementById("loadingIndicator");
     
+    function setupRevealReasonToggle() {
+      const btn = document.getElementById("toggleContextBtn");
+      const context = document.getElementById("contextSection");
+      if (btn && context) {
+        btn.addEventListener("click", () => {
+          const isHidden = context.classList.contains("hidden");
+          context.classList.toggle("hidden");
+          btn.textContent = isHidden ? "🔍 Hide Reason (Context)" : "🔍 Reveal Reason (Context)";
+        });
+      }
+    }
+    
+    // Initialize toggle on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      setupRevealReasonToggle();
+    });
+    
     chatForm.addEventListener("submit", async function(event) {
       event.preventDefault();  // Prevent full page reload
     
@@ -78,17 +99,26 @@
       chatForm.querySelector("button[type='submit']").disabled = true;
     
       try {
-        // Send POST request to /ask with the question
+        // Send POST request to /ask with the question (with timeout)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+        
         const response = await fetch("/ask", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
             "X-Requested-With": "XMLHttpRequest"
           },
-          body: new URLSearchParams({ question })
+          body: new URLSearchParams({ question }),
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
     
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
+        }
     
         const html = await response.text();
     
@@ -98,7 +128,12 @@
     
         const newAnswer = doc.querySelector("#answerContent");
         const currentAnswer = document.querySelector("#answerContent");
-        if (newAnswer && currentAnswer) currentAnswer.innerHTML = newAnswer.innerHTML;
+        if (newAnswer && currentAnswer) {
+          currentAnswer.innerHTML = newAnswer.innerHTML;
+        } else if (currentAnswer) {
+          // If no answer found, show error message
+          currentAnswer.innerHTML = '<div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg"><strong>Error:</strong> No response received from server.</div>';
+        }
     
         const newContext = doc.querySelector("#contextSection");
         const currentContext = document.querySelector("#contextSection");
@@ -109,11 +144,19 @@
           if (toggleBtn) toggleBtn.textContent = "🔍 Reveal Reason (Context)";
         }
     
-        // Clear textarea after submit (optional)
+        // Re-bind the toggle logic after updating content
+        setupRevealReasonToggle();
+    
+        // Clear textarea after submit
         questionInput.value = "";
     
       } catch (error) {
-        alert(error.message);
+        if (error.name === 'AbortError') {
+          alert("Request timed out. The LLM may be taking too long to respond. Please try again.");
+        } else {
+          alert(`Error: ${error.message}`);
+        }
+        console.error("Error submitting question:", error);
       } finally {
         // Hide spinner and re-enable inputs
         loadingIndicator.classList.add("hidden");
@@ -121,41 +164,6 @@
         chatForm.querySelector("button[type='submit']").disabled = false;
       }
     });
-    function setupRevealReasonToggle() {
-        const btn = document.getElementById("toggleContextBtn");
-        const context = document.getElementById("contextSection");
-        if (btn && context) {
-          btn.addEventListener("click", () => {
-            const isHidden = context.classList.contains("hidden");
-            context.classList.toggle("hidden");
-            btn.textContent = isHidden ? "🔍 Hide Reason (Context)" : "🔍 Reveal Reason (Context)";
-          });
-        }
-      }
-      document.addEventListener("DOMContentLoaded", () => {
-        setupRevealReasonToggle(); // Initial binding for first page load
-      });
-      
-      chatForm.addEventListener("submit", async function(event) {
-        // ... your existing code ...
-      
-        if (newContext && currentContext) {
-          currentContext.innerHTML = newContext.innerHTML;
-          currentContext.classList.add("hidden");
-      
-          // You need to update the toggle button too
-          const newToggleBtn = doc.querySelector("#toggleContextBtn");
-          const oldToggleBtn = document.getElementById("toggleContextBtn");
-          if (newToggleBtn && oldToggleBtn) {
-            oldToggleBtn.replaceWith(newToggleBtn);
-          }
-      
-          // Re-bind the toggle logic
-          setupRevealReasonToggle();
-        }
-      
-        // ... rest of code ...
-      });
       
     </script>
 </body>

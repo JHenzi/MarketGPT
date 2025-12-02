@@ -533,6 +533,7 @@ def fetch_and_store(feed_urls, delay_between=None):
             time.sleep(DELAY_BETWEEN_BATCHES)
 
     print(f"[fetch_and_store] Inserted {added} new entries into the database.")
+    return added
 
 @app.route("/report")
 def view_market_report():
@@ -624,23 +625,64 @@ def sources():
 
 @app.route("/ask", methods=["GET", "POST"])
 def ask():
+    print(f"[ask] Request received: method={request.method}")
     if request.method == "POST":
         user_input = request.form.get("question", "").strip()
+        print(f"[ask] User question: {user_input[:100]}...")
         if not user_input:
+            print("[ask] Empty question, returning error")
             return render_template("chat.html", error="Please enter a question.")
 
-        # Embed user input
-        embedding = embed_text([user_input])[0]
+        try:
+            print("[ask] Generating embedding...")
+            # Embed user input
+            embedding = embed_text([user_input])[0]
+            print(f"[ask] Embedding generated, length: {len(embedding)}")
+        except Exception as e:
+            print(f"[ask] ERROR generating embedding: {e}")
+            traceback.print_exc()
+            return render_template("chat.html", 
+                                 question=user_input, 
+                                 error=f"Error processing question: {str(e)}")
 
-        # Pull more entries than needed for sorting
-        results = collection.query(
-            query_embeddings=[embedding],
-            n_results=25,  # Pull extra so we can sort by date
-            include=["documents", "metadatas"]
-        )
+        try:
+            # Check if collection has any documents first
+            print("[ask] Checking collection size...")
+            collection_count = collection.count()
+            print(f"[ask] Collection contains {collection_count} documents")
+            
+            if collection_count == 0:
+                print("[ask] Collection is empty, returning error")
+                return render_template("chat.html", 
+                                     question=user_input, 
+                                     error="No articles found in database. Please fetch some news articles first using the periodic task or manual fetch.")
+            
+            print("[ask] Querying collection for similar articles...")
+            # Pull more entries than needed for sorting
+            # Use min to avoid requesting more than available
+            n_results = min(25, collection_count)
+            results = collection.query(
+                query_embeddings=[embedding],
+                n_results=n_results,
+                include=["documents", "metadatas"]
+            )
+            print(f"[ask] Query returned {len(results.get('documents', [[]])[0])} results")
+        except Exception as e:
+            print(f"[ask] ERROR querying collection: {e}")
+            traceback.print_exc()
+            return render_template("chat.html", 
+                                 question=user_input, 
+                                 error=f"Error searching articles: {str(e)}")
+
+        if not results.get("documents") or not results["documents"][0]:
+            print("[ask] No articles found in collection")
+            return render_template("chat.html", 
+                                 question=user_input, 
+                                 error="No articles found in database. Please fetch some news first.")
 
         docs = results["documents"][0]
         metas = results["metadatas"][0]
+        print(f"[ask] Processing {len(docs)} articles")
 
         # Pair up and sort by parsed publish date descending
         combined = []
@@ -667,8 +709,10 @@ def ask():
             published = meta.get("published_date") or "Unknown"
             context_items.append(f"[{title}]({link}) (Published: {published}): {doc}")
         context = "\n\n---\n\n".join(context_items)
+        print(f"[ask] Context prepared, length: {len(context)} characters")
 
         # Prepare LLM prompt
+        print("[ask] Preparing LLM messages...")
         messages = [
             {
                 "role": "system",
@@ -692,17 +736,47 @@ Please answer this question:
             }
         ]
 
-        # Call the LLM endpoint
-        endpoint, headers, payload = prepare_llm_request(messages, temperature=0.7)
-        response = requests.post(endpoint, headers=headers, json=payload)
-        response.raise_for_status()
+        # Call the LLM endpoint with timeout
+        print("[ask] Preparing LLM request...")
+        try:
+            endpoint, headers, payload = prepare_llm_request(messages, temperature=0.7)
+            print(f"[ask] LLM endpoint: {endpoint}")
+            print(f"[ask] Sending request to LLM (timeout=120s)...")
+            response = requests.post(endpoint, headers=headers, json=payload, timeout=120)  # 2 minute timeout
+            print(f"[ask] LLM response received, status: {response.status_code}")
+            response.raise_for_status()
+        except requests.exceptions.Timeout:
+            print("[ask] Request timed out after 120 seconds")
+            return render_template("chat.html", 
+                                 question=user_input, 
+                                 error="Request timed out. The LLM is taking too long to respond. Please try again.")
+        except requests.exceptions.RequestException as e:
+            print(f"[ask] ERROR calling LLM: {e}")
+            traceback.print_exc()
+            return render_template("chat.html", 
+                                 question=user_input, 
+                                 error=f"Error calling LLM: {str(e)}")
 
         # Process the response
-        raw_answer = response.json()["choices"][0]["message"]["content"]
+        print("[ask] Processing LLM response...")
+        try:
+            response_data = response.json()
+            raw_answer = response_data["choices"][0]["message"]["content"]
+            print(f"[ask] Response extracted, length: {len(raw_answer)} characters")
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            print(f"[ask] ERROR parsing LLM response: {e}")
+            print(f"[ask] Response status: {response.status_code}")
+            print(f"[ask] Response headers: {dict(response.headers)}")
+            print(f"[ask] Response content (first 500 chars): {response.text[:500]}")
+            traceback.print_exc()
+            return render_template("chat.html", 
+                                 question=user_input, 
+                                 error="Error parsing LLM response. Please try again.")
         #cleaned_answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE)
         # Strip everything before and including a closing </think> tag
         cleaned_answer = re.sub(r"^.*?</\s*think\s*>", "", raw_answer, flags=re.DOTALL | re.IGNORECASE).strip()
 
+        print("[ask] Rendering answer...")
         rendered_answer = Markup(markdown.markdown(cleaned_answer))
 
         reveal_reason_text = "\n\n---\n\n".join([
@@ -710,6 +784,7 @@ Please answer this question:
             for doc, meta in zip(docs, metas)
         ])
 
+        print("[ask] Returning response to user")
         return render_template("chat.html", question=user_input, answer=rendered_answer, context=reveal_reason_text)
 
     return render_template("chat.html", question="", answer="", context="")
@@ -1576,30 +1651,35 @@ def periodic_fetch_and_report():
         try:
             print("[periodic] Starting periodic task...")
 
+            new_articles_count = 0
             try:
                 print("[periodic] Fetching articles...")
-                fetch_and_store(feed_urls)
-                print("[periodic] Fetch done.")
+                new_articles_count = fetch_and_store(feed_urls)
+                print(f"[periodic] Fetch done. Added {new_articles_count} new articles.")
             except Exception as e:
                 print(f"[periodic] Error during fetch_and_store: {e}")
                 traceback.print_exc()
                 time.sleep(300)  # Wait 5 minutes before next run
                 continue
 
-            try:
-                print("[periodic] Generating report...")
-                generate_market_report(collection, model)
-                print("[periodic] Report generated.")
-            except Exception as e:
-                print(f"[periodic] Error during generate_market_report: {e}")
-                traceback.print_exc()
-            try:
-                print("[periodic] Summarizing report...")
-                summarize_market_report()
-                print("[periodic] Report summarized.")
-            except Exception as e:
-                print(f"[periodic] Error during summarize_market_report: {e}")
-                traceback.print_exc()
+            # Only generate report and summary if new articles were added
+            if new_articles_count > 0:
+                try:
+                    print(f"[periodic] {new_articles_count} new articles added. Generating report...")
+                    generate_market_report(collection, model)
+                    print("[periodic] Report generated.")
+                except Exception as e:
+                    print(f"[periodic] Error during generate_market_report: {e}")
+                    traceback.print_exc()
+                try:
+                    print("[periodic] Summarizing report...")
+                    summarize_market_report()
+                    print("[periodic] Report summarized.")
+                except Exception as e:
+                    print(f"[periodic] Error during summarize_market_report: {e}")
+                    traceback.print_exc()
+            else:
+                print("[periodic] No new articles added. Skipping report generation and summarization.")
             try:
                 print("[periodic] Extracting stock recommendations...")
                 extract_stock_recommendations(collection, model, today_str)
