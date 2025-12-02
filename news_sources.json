@@ -1,8 +1,6 @@
 {
   "_comment": "RSS feeds focused on financial markets, business, tech, and crypto - relevant for stock buy/sell recommendations",
   "sources": [
-    "https://cointelegraph.com/rss",
-    "https://decrypt.co/feed",
     "https://feeds.bloomberg.com/markets/news.rss",
     "https://seekingalpha.com/feed.xml",
     "https://www.ft.com/rss/home",
@@ -19,8 +17,10 @@
     "http://feeds.hbr.org/harvardbusiness",
     "https://www.fastcompany.com/latest/rss?truncated=true"
   ],
-  "batch_size": 5,
-  "delay_between_batches": 2.0,
-  "delay_between_feeds": 1.0,
-  "_note": "Excluded categories: entertainment, sports, general news (politics). Focused on finance, business, tech, and crypto for stock analysis."
+  "batch_size": 3,
+  "delay_between_batches": 5.0,
+  "delay_between_feeds": 2.0,
+  "delay_between_articles": 3.0,
+  "max_articles_per_fetch": 50,
+  "_note": "Rate limiting: RSS feeds (2s), Articles (3s), Batches (5s). Max 50 articles per fetch to prevent overload. Excluded categories: entertainment, sports, general news (politics)."
 }

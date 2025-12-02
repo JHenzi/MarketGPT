@@ -21,7 +21,14 @@ from db_utils import (
     mark_recommendation_inactive_sqlite,
     mark_ticker_recommendations_inactive_sqlite,
     cleanup_old_recommendations,
-    get_recommendation_stats
+    delete_old_recommendations,
+    get_recommendation_stats,
+    get_feed_metadata,
+    update_feed_metadata,
+    get_feeds_needing_update,
+    is_article_processed,
+    mark_article_processed,
+    cleanup_old_processed_articles
 )
 import chromadb
 import feedparser
@@ -38,6 +45,7 @@ import time
 import trafilatura
 import uuid
 import traceback
+from urllib.parse import urlparse
 
 # Load environment variables
 try:
@@ -74,9 +82,9 @@ except Exception as e:
     print("  2. Or migrate existing data: pip install chroma-migrate && chroma-migrate")
     sys.exit(1)
 
-# Initialize SQLite database for recommendations
+# Initialize SQLite database for recommendations and feed metadata
 init_recommendations_db()
-print("[INIT] SQLite recommendations database initialized")
+print("[INIT] SQLite database initialized (recommendations + feed_metadata)")
 
 # Load LLM configuration from environment variables and JSON file (for backward compatibility)
 def load_llm_config(path="llm_config.json"):
@@ -233,7 +241,7 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 def load_news_sources(path="news_sources.json"):
     """
     Load news sources from JSON file.
-    Returns a tuple of (feed_urls, batch_size, delay_between_batches, delay_between_feeds)
+    Returns a tuple of (feed_urls, batch_size, delay_between_batches, delay_between_feeds, delay_between_articles, max_articles)
     """
     default_sources = [
         "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
@@ -241,7 +249,7 @@ def load_news_sources(path="news_sources.json"):
     
     if not os.path.exists(path):
         print(f"[news_sources] Config file {path} not found. Using defaults.")
-        return default_sources, 5, 2.0, 1.0
+        return default_sources, 3, 5.0, 2.0, 3.0, 50
     
     try:
         with open(path, "r") as f:
@@ -256,20 +264,23 @@ def load_news_sources(path="news_sources.json"):
                 seen.add(url)
                 unique_sources.append(url)
         
-        batch_size = config.get("batch_size", 5)
-        delay_between_batches = config.get("delay_between_batches", 2.0)
-        delay_between_feeds = config.get("delay_between_feeds", 1.0)
+        batch_size = config.get("batch_size", 3)
+        delay_between_batches = config.get("delay_between_batches", 5.0)
+        delay_between_feeds = config.get("delay_between_feeds", 2.0)
+        delay_between_articles = config.get("delay_between_articles", 3.0)
+        max_articles = config.get("max_articles_per_fetch", 50)
         
         print(f"[news_sources] Loaded {len(unique_sources)} unique sources from {path}")
         if len(sources) != len(unique_sources):
             print(f"[news_sources] Removed {len(sources) - len(unique_sources)} duplicate sources")
+        print(f"[news_sources] Rate limiting: RSS feeds ({delay_between_feeds}s), Articles ({delay_between_articles}s), Batches ({delay_between_batches}s), Max articles: {max_articles}")
         
-        return unique_sources, batch_size, delay_between_batches, delay_between_feeds
+        return unique_sources, batch_size, delay_between_batches, delay_between_feeds, delay_between_articles, max_articles
     except Exception as e:
         print(f"[news_sources] Error loading config from {path}: {e}")
-        return default_sources, 5, 2.0, 1.0
+        return default_sources, 3, 5.0, 2.0, 3.0, 50
 
-feed_urls, BATCH_SIZE, DELAY_BETWEEN_BATCHES, DELAY_BETWEEN_FEEDS = load_news_sources()
+feed_urls, BATCH_SIZE, DELAY_BETWEEN_BATCHES, DELAY_BETWEEN_FEEDS, DELAY_BETWEEN_ARTICLES, MAX_ARTICLES = load_news_sources()
 
 def fetch_full_article(url):
     try:
@@ -281,9 +292,10 @@ def fetch_full_article(url):
     return None
 
 
-def fetch_rss_multiple(feed_urls, batch_size=None, delay_between_batches=None):
+def fetch_rss_multiple(feed_urls, batch_size=None, delay_between_batches=None, use_conditional_requests=True):
     """
     Fetch RSS feeds in batches to avoid overwhelming the system.
+    Uses feed metadata to skip recently-checked feeds and conditional requests.
     Processes feeds in batches with delays between batches.
     """
     if batch_size is None:
@@ -291,13 +303,28 @@ def fetch_rss_multiple(feed_urls, batch_size=None, delay_between_batches=None):
     if delay_between_batches is None:
         delay_between_batches = DELAY_BETWEEN_BATCHES
     
+    # Get fetch interval from environment or use default
+    fetch_interval_minutes = int(os.getenv("NEWS_FETCH_INTERVAL_MINUTES", "30"))
+    
+    # Filter feeds that need updating
+    feeds_to_check = get_feeds_needing_update(feed_urls, fetch_interval_minutes)
+    skipped_count = len(feed_urls) - len(feeds_to_check)
+    
+    if skipped_count > 0:
+        print(f"[fetch_rss_multiple] Skipping {skipped_count} feeds checked within last {fetch_interval_minutes} minutes")
+    
+    if not feeds_to_check:
+        print("[fetch_rss_multiple] All feeds recently checked, skipping fetch")
+        return []
+    
     all_entries = []
-    total_feeds = len(feed_urls)
+    total_feeds = len(feeds_to_check)
+    feed_results = {}  # Track results per feed for metadata updates
     
     print(f"[fetch_rss_multiple] Processing {total_feeds} feeds in batches of {batch_size}")
     
     for i in range(0, total_feeds, batch_size):
-        batch = feed_urls[i:i+batch_size]
+        batch = feeds_to_check[i:i+batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_feeds + batch_size - 1) // batch_size
         
@@ -305,12 +332,58 @@ def fetch_rss_multiple(feed_urls, batch_size=None, delay_between_batches=None):
         
         for url in batch:
             try:
-                parsed_feed = feedparser.parse(url)
+                # Get feed metadata for conditional requests
+                metadata = get_feed_metadata(url)
+                
+                # Fetch feed with conditional headers if available
+                if use_conditional_requests and metadata:
+                    etag = metadata.get("etag")
+                    modified = metadata.get("last_modified")
+                    parsed_feed = feedparser.parse(url, etag=etag, modified=modified)
+                else:
+                    parsed_feed = feedparser.parse(url)
+                
+                # Check if feed was not modified (304 response)
+                # feedparser sets status to 304 if the feed hasn't changed
+                if hasattr(parsed_feed, 'status') and parsed_feed.status == 304:
+                    print(f"[fetch_rss_multiple] Feed not modified (304): {url}")
+                    # Update last check time but no new articles
+                    update_feed_metadata(url, datetime.now().isoformat(), success=True)
+                    feed_results[url] = {"entries": [], "success": True, "etag": metadata.get("etag") if metadata else None, "last_modified": metadata.get("last_modified") if metadata else None}
+                    continue
+                
                 entries = parsed_feed.entries
                 all_entries.extend(entries)
+                
+                # Extract ETag and Last-Modified from response
+                etag = getattr(parsed_feed, 'etag', None) or metadata.get("etag") if metadata else None
+                last_modified = getattr(parsed_feed, 'modified', None) or metadata.get("last_modified") if metadata else None
+                
+                # Find latest article date
+                latest_date = None
+                if entries:
+                    for entry in entries:
+                        pub_date = entry.get("published") or entry.get("pubDate")
+                        if pub_date:
+                            try:
+                                parsed_date = date_parser.parse(pub_date)
+                                if latest_date is None or parsed_date > latest_date:
+                                    latest_date = parsed_date
+                            except:
+                                pass
+                
+                feed_results[url] = {
+                    "entries": entries,
+                    "success": True,
+                    "etag": etag,
+                    "last_modified": last_modified,
+                    "latest_date": latest_date.strftime("%Y-%m-%d %H:%M:%S") if latest_date else None
+                }
+                
                 print(f"[fetch_rss_multiple] Fetched {len(entries)} entries from feed")
             except Exception as e:
                 print(f"[fetch_rss_multiple] Error fetching feed {url}: {e}")
+                feed_results[url] = {"entries": [], "success": False}
                 continue
             
             # Small delay between individual feeds
@@ -322,6 +395,19 @@ def fetch_rss_multiple(feed_urls, batch_size=None, delay_between_batches=None):
             print(f"[fetch_rss_multiple] Waiting {delay_between_batches}s before next batch...")
             time.sleep(delay_between_batches)
     
+    # Update feed metadata for all processed feeds
+    current_time = datetime.now().isoformat()
+    for url, result in feed_results.items():
+        update_feed_metadata(
+            url,
+            current_time,
+            last_article_date=result.get("latest_date"),
+            etag=result.get("etag"),
+            last_modified=result.get("last_modified"),
+            articles_processed=len(result.get("entries", [])),
+            success=result.get("success", False)
+        )
+    
     print(f"[fetch_rss_multiple] Total entries fetched: {len(all_entries)}")
     return all_entries
 
@@ -331,19 +417,29 @@ def embed_text(texts):
 
 def fetch_and_store(feed_urls, delay_between=None):
     """
-    Fetch RSS feeds and store articles in batches.
+    Fetch RSS feeds and store articles in batches with proper rate limiting.
     Processes articles in batches to avoid overwhelming the system.
+    Implements per-domain rate limiting and article limits.
     """
     if delay_between is None:
-        delay_between = DELAY_BETWEEN_FEEDS
+        delay_between = DELAY_BETWEEN_ARTICLES
     
     print("[fetch_and_store] Starting fetch...")
 
     entries = fetch_rss_multiple(feed_urls)
     total = len(entries)
+    
+    # Limit total articles to process
+    if total > MAX_ARTICLES:
+        print(f"[fetch_and_store] Limiting to {MAX_ARTICLES} articles (found {total})")
+        entries = entries[:MAX_ARTICLES]
+        total = MAX_ARTICLES
+    
     added = 0
+    last_domain_time = {}  # Track last request time per domain
+    min_domain_delay = 2.0  # Minimum seconds between requests to same domain
 
-    print(f"[fetch_and_store] Total {total} entries fetched from all RSS feeds.")
+    print(f"[fetch_and_store] Total {total} entries to process.")
     print(f"[fetch_and_store] Processing articles in batches of {BATCH_SIZE}")
 
     # Process articles in batches
@@ -379,9 +475,28 @@ def fetch_and_store(feed_urls, delay_between=None):
                 print(f"[{global_index}/{total}] Skipping already stored link: {link}")
                 continue
 
+            # Per-domain rate limiting
+            try:
+                domain = urlparse(link).netloc
+                if domain in last_domain_time:
+                    time_since_last = time.time() - last_domain_time[domain]
+                    if time_since_last < min_domain_delay:
+                        wait_time = min_domain_delay - time_since_last
+                        print(f"[{global_index}/{total}] Rate limiting: waiting {wait_time:.1f}s for domain {domain}")
+                        time.sleep(wait_time)
+                last_domain_time[domain] = time.time()
+            except Exception:
+                pass  # If URL parsing fails, continue anyway
+
             print(f"[{global_index}/{total}] Fetching full article from: {link}")
-            # Fetch full article
-            full_article = fetch_full_article(link)
+            # Fetch full article with error handling
+            try:
+                full_article = fetch_full_article(link)
+            except Exception as e:
+                print(f"[{global_index}/{total}] Error fetching article: {e}")
+                # Use summary if article fetch fails
+                full_article = None
+            
             if full_article and len(full_article) > 200:
                 text = f"{title}. {full_article}"
                 print(f"[{global_index}/{total}] Using full article content (length={len(full_article)})")
@@ -409,8 +524,8 @@ def fetch_and_store(feed_urls, delay_between=None):
             added += 1
             print(f"[{global_index}/{total}] Added document id={doc_id} to collection.")
 
-            # Delay to throttle
-            time.sleep(delay_between + random.uniform(0, 0.5))  # jitter helps mimic natural behavior
+            # Delay to throttle - use longer delay for articles
+            time.sleep(delay_between + random.uniform(0, 1.0))  # 3-4 seconds between articles
         
         # Delay between batches (except for the last batch)
         if batch_end < total and DELAY_BETWEEN_BATCHES > 0:
@@ -883,6 +998,70 @@ def generate_market_report_simple(collection, model, top_k=10, output_path="mark
 def home():
     return render_template("index.html")
 
+def validate_recommendation(rec):
+    """
+    Validate a recommendation before storing.
+    Returns (is_valid, error_message)
+    """
+    # Check required fields
+    required_fields = ["company", "ticker", "recommendation", "reason", "confidence", 
+                      "article_title", "article_url"]
+    for field in required_fields:
+        if field not in rec or not rec[field]:
+            return False, f"Missing required field: {field}"
+    
+    # Validate ticker format (1-5 uppercase letters, may include . for class shares like BRK.B)
+    ticker = str(rec["ticker"]).strip().upper()
+    if not re.match(r'^[A-Z]{1,5}(\.[A-Z])?$', ticker):
+        return False, f"Invalid ticker format: {ticker} (must be 1-5 uppercase letters, optionally followed by . and one letter for class shares)"
+    
+    # Validate recommendation type
+    if str(rec["recommendation"]).upper() not in ["BUY", "SELL"]:
+        return False, f"Invalid recommendation type: {rec['recommendation']} (must be BUY or SELL)"
+    
+    # Validate confidence level
+    if str(rec["confidence"]).upper() not in ["HIGH", "MEDIUM", "LOW"]:
+        return False, f"Invalid confidence level: {rec['confidence']} (must be HIGH, MEDIUM, or LOW)"
+    
+    # Check for common invalid entities
+    invalid_keywords = ["country", "currency", "commodity", "sector", "index", 
+                       "market", "economy", "government", "federal", "central bank",
+                       "reserve", "treasury", "congress", "parliament"]
+    company_lower = str(rec["company"]).lower()
+    if any(keyword in company_lower for keyword in invalid_keywords):
+        return False, f"Invalid entity type: {rec['company']} (contains invalid keyword suggesting non-stock entity)"
+    
+    # Check for country names (common mistake)
+    common_countries = ["canada", "mexico", "china", "japan", "germany", "france", 
+                       "italy", "spain", "uk", "united kingdom", "australia", "brazil",
+                       "india", "russia", "south korea", "south africa", "argentina",
+                       "chile", "colombia", "peru", "venezuela", "turkey", "egypt",
+                       "saudi arabia", "uae", "united arab emirates", "israel",
+                       "singapore", "thailand", "indonesia", "malaysia", "philippines",
+                       "vietnam", "poland", "czech republic", "hungary", "romania"]
+    if company_lower in common_countries:
+        return False, f"Invalid entity: {rec['company']} is a country, not a stock"
+    
+    # Check for currency names
+    currencies = ["dollar", "euro", "yen", "pound", "yuan", "rupee", "peso", "real",
+                  "ruble", "won", "ringgit", "baht", "rupiah", "dinar", "riyal"]
+    if any(currency in company_lower for currency in currencies):
+        return False, f"Invalid entity: {rec['company']} appears to be a currency, not a stock"
+    
+    # Check for commodity names
+    commodities = ["gold", "silver", "oil", "crude", "wheat", "corn", "soybean",
+                   "coffee", "sugar", "cotton", "natural gas", "gasoline"]
+    if any(commodity in company_lower for commodity in commodities):
+        return False, f"Invalid entity: {rec['company']} appears to be a commodity, not a stock"
+    
+    # Check for sector/index names
+    sectors_indices = ["s&p 500", "nasdaq", "dow jones", "technology sector", "healthcare sector",
+                      "financial sector", "energy sector", "consumer sector", "industrial sector"]
+    if any(sector in company_lower for sector in sectors_indices):
+        return False, f"Invalid entity: {rec['company']} appears to be a sector or index, not a stock"
+    
+    return True, None
+
 def extract_stock_recommendations(collection, model, today_str):
     """
     Read today's news and extract buy/sell recommendations for stocks
@@ -902,19 +1081,43 @@ def extract_stock_recommendations(collection, model, today_str):
     docs = today_articles["documents"]
     metas = today_articles["metadatas"]
 
+    # Filter out articles that have already been processed
+    unprocessed_articles = []
+    skipped_count = 0
+    for doc, meta in zip(docs, metas):
+        article_url = meta.get("link", "")
+        if not article_url:
+            continue
+        
+        if is_article_processed(article_url):
+            skipped_count += 1
+            continue
+        
+        unprocessed_articles.append((doc, meta))
+    
+    if skipped_count > 0:
+        print(f"[extract_stock_recommendations] Skipping {skipped_count} already-processed articles")
+    
+    if not unprocessed_articles:
+        print("[extract_stock_recommendations] All articles have already been processed")
+        return
+
     # Batch process articles to avoid too many API calls
     batch_size = 5
     all_recommendations = []
 
-    for i in range(0, len(docs), batch_size):
-        batch_docs = docs[i:i+batch_size]
-        batch_metas = metas[i:i+batch_size]
+    for i in range(0, len(unprocessed_articles), batch_size):
+        batch_items = unprocessed_articles[i:i+batch_size]
+        batch_docs = [item[0] for item in batch_items]
+        batch_metas = [item[1] for item in batch_items]
 
         # Prepare context for LLM
         context_items = []
+        batch_urls = []
         for doc, meta in zip(batch_docs, batch_metas):
             title = meta.get("title", "No title")
             link = meta.get("link", "#")
+            batch_urls.append(link)
             context_items.append(f"Title: {title}\nURL: {link}\nContent: {doc[:1000]}")
 
         context = "\n\n---\n\n".join(context_items)
@@ -923,30 +1126,50 @@ def extract_stock_recommendations(collection, model, today_str):
         messages = [
             {
                 "role": "system",
-                "content": """You are a financial analyst. Analyze news articles and identify any stock buy/sell signals. Be careful to not make up ticker symbols or to suggest buy/sell recommendations on things that are not stocks, bonds, mutual funds, or ETFs. If you are unsure, do not provide a suggestion.
+                "content": """You are a financial analyst specializing in stock recommendations. Your task is to analyze news articles and identify actionable buy/sell signals for publicly traded stocks ONLY.
 
-Look for:
-- Company earnings beats/misses
-- Analyst upgrades/downgrades
-- New product launches or innovations
-- Regulatory approvals/rejections
-- Management changes
-- Market share gains/losses
-- Financial guidance changes
+CRITICAL RULES:
+1. ONLY recommend stocks (publicly traded companies with ticker symbols)
+2. DO NOT recommend: countries, currencies, commodities, cryptocurrencies, indices, sectors, or any non-tradeable entities
+3. Ticker symbols must be 1-5 uppercase letters (e.g., AAPL, TSLA, MSFT, BRK.B)
+4. Company name must be the actual legal company name, not a country, concept, or sector
+5. If an article mentions "Canada", "oil prices", "tech sector", "Bitcoin", or similar - DO NOT create a recommendation for these
 
-Respond ONLY with a JSON array of recommendations. Each recommendation should have:
+VALID EXAMPLES:
+✅ {"company": "Apple Inc", "ticker": "AAPL", "recommendation": "BUY", "reason": "Strong iPhone sales beat expectations", "confidence": "HIGH", "article_title": "...", "article_url": "..."}
+✅ {"company": "Tesla Inc", "ticker": "TSLA", "recommendation": "SELL", "reason": "Production concerns and delivery delays", "confidence": "MEDIUM", "article_title": "...", "article_url": "..."}
+
+INVALID EXAMPLES (DO NOT CREATE THESE):
+❌ {"company": "Canada", "ticker": "CAN", ...} - Canada is not a stock
+❌ {"company": "Oil Sector", "ticker": "OIL", ...} - Sector is not a stock
+❌ {"company": "Technology", "ticker": "TECH", ...} - Concept is not a stock
+❌ {"company": "Bitcoin", "ticker": "BTC", ...} - Cryptocurrency is not a stock
+❌ {"company": "S&P 500", "ticker": "SPY", ...} - Index/ETF, only recommend if explicitly about a specific company
+
+Look for these specific signals:
+- Company earnings beats/misses (with named company)
+- Analyst upgrades/downgrades (with specific company name and ticker)
+- New product launches by named companies
+- Regulatory approvals/rejections for specific companies
+- Management changes at specific companies
+- Market share gains/losses by named companies
+- Financial guidance changes from specific companies
+- M&A activity involving specific companies
+
+Respond ONLY with a valid JSON array. Each recommendation must have ALL fields:
 {
-  "company": "Company Name",
-  "ticker": "STOCK_SYMBOL",
+  "company": "Full Legal Company Name",
+  "ticker": "TICKER (1-5 uppercase letters, may include . for classes like BRK.B)",
   "recommendation": "BUY" or "SELL",
-  "reason": "Brief reason for recommendation",
+  "reason": "Brief specific reason based on the article",
   "confidence": "HIGH", "MEDIUM", or "LOW",
-  "article_title": "Article title",
-  "article_url": "Article URL"
+  "article_title": "Exact article title from context",
+  "article_url": "Exact article URL from context"
 }
 
-If no clear recommendations, return empty array [].
-DO NOT include any text outside the JSON array. Especially do not include any markdown or HTML formatting like backticks. Do not explain your reasoning or provide any additional commentary. Just return the JSON array."""
+If no valid stock recommendations found, return empty array: []
+
+DO NOT include markdown, backticks, code blocks, or any text outside the JSON array. Do not explain your reasoning. Just return the JSON array."""
             },
             {
                 "role": "user", 
@@ -963,7 +1186,7 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
             #         "temperature": 0.3,
             #     }
             # )
-            endpoint, headers, payload = prepare_llm_request(messages, temperature=0.7)
+            endpoint, headers, payload = prepare_llm_request(messages, temperature=0.2)
             response = requests.post(endpoint, headers=headers, json=payload)
 
 
@@ -985,13 +1208,38 @@ DO NOT include any text outside the JSON array. Especially do not include any ma
             try:
                 batch_recommendations = json.loads(raw_response)
                 if isinstance(batch_recommendations, list):
-                    all_recommendations.extend(batch_recommendations)
+                    # Validate each recommendation before adding
+                    valid_count = 0
+                    for rec in batch_recommendations:
+                        is_valid, error_msg = validate_recommendation(rec)
+                        if is_valid:
+                            all_recommendations.append(rec)
+                            valid_count += 1
+                        else:
+                            print(f"[extract_stock_recommendations] Validation failed: {error_msg}")
+                            print(f"[extract_stock_recommendations] Rejected recommendation: {rec}")
+                    
+                    # Mark all articles in this batch as processed (even if no valid recommendations)
+                    for url in batch_urls:
+                        mark_article_processed(url, today_str, recommendation_count=valid_count)
+                else:
+                    print(f"[extract_stock_recommendations] Response is not a list: {type(batch_recommendations)}")
+                    # Still mark as processed to avoid retrying
+                    for url in batch_urls:
+                        mark_article_processed(url, today_str, recommendation_count=0)
             except json.JSONDecodeError as e:
                 print(f"[extract_stock_recommendations] JSON parse error: {e}")
                 print(f"Raw response: {raw_response}")
+                # Mark as processed even on error to avoid infinite retries
+                for url in batch_urls:
+                    mark_article_processed(url, today_str, recommendation_count=0)
 
         except Exception as e:
             print(f"[extract_stock_recommendations] Error processing batch: {e}")
+            traceback.print_exc()
+            # Mark as processed on error to avoid infinite retries
+            for url in batch_urls:
+                mark_article_processed(url, today_str, recommendation_count=0)
 
         # Small delay between batches
         time.sleep(2)
@@ -1132,7 +1380,7 @@ def view_recommendations():
                             filter_ticker=ticker,
                             filter_date=date_filter,
                             today_only=today_only,
-                            today_date=datetime.now().strftime("%B %d, %Y"),
+                            today_date=datetime.now(ZoneInfo("America/New_York")).strftime("%B %d, %Y"),
                             stats=stats
                             )
 
@@ -1145,9 +1393,11 @@ def api_todays_recommendations():
         recommendations = get_todays_recommendations()
         stats = get_recommendation_stats()
         
+        # Use NY timezone to match how recommendations are stored
+        today_str = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
         return jsonify({
             "status": "success",
-            "date": date.today().isoformat(),
+            "date": today_str,
             "stats": stats,
             "recommendations": recommendations
         }), 200
@@ -1183,6 +1433,32 @@ def api_recommendations_by_date(date_str):
             "status": "error",
             "message": str(e)
         }), 500
+
+@app.route("/recommendations/cleanup", methods=["POST"])
+def cleanup_recommendations():
+    """
+    Clean up old recommendations. Can mark as inactive or permanently delete.
+    """
+    data = request.get_json() or {}
+    days_old = int(data.get("days_old", 7))
+    permanent = data.get("permanent", False)
+    
+    try:
+        if permanent:
+            deleted = delete_old_recommendations(days_old=days_old)
+            return jsonify({
+                "status": "success",
+                "message": f"Permanently deleted {deleted} recommendations older than {days_old} days"
+            }), 200
+        else:
+            affected = cleanup_old_recommendations(days_old=days_old)
+            return jsonify({
+                "status": "success",
+                "message": f"Marked {affected} recommendations as inactive (older than {days_old} days)"
+            }), 200
+    except Exception as e:
+        print(f"[cleanup_recommendations] Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/recommendations/delete", methods=["POST"])
 def delete_recommendation():
@@ -1331,13 +1607,20 @@ def periodic_fetch_and_report():
             except Exception as e:
                 print(f"[periodic] Error during extract_stock_recommendations: {e}")
                 traceback.print_exc()
-            # Turn this back on to clean up old recommendations every X days on the repeating cycle
+            # Clean up old recommendations and processed articles
             try:
                 print("[periodic] Cleaning up old recommendations...")
                 mark_old_recommendations_inactive(days_old=3)
                 print("[periodic] Old recommendations cleaned up.")
             except Exception as e:
                 print(f"[periodic] Error during cleanup: {e}")
+                traceback.print_exc()
+            try:
+                print("[periodic] Cleaning up old processed article records...")
+                cleanup_old_processed_articles(days_old=7)
+                print("[periodic] Old processed article records cleaned up.")
+            except Exception as e:
+                print(f"[periodic] Error during processed articles cleanup: {e}")
                 traceback.print_exc()
             # Get fetch interval from environment variable, default to 30 minutes
             fetch_interval_minutes = int(os.getenv("NEWS_FETCH_INTERVAL_MINUTES", "30"))

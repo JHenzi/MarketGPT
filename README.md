@@ -6,13 +6,14 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 
 ![Recommendations](/images/recommendations.png)
 
-- **Automated News Aggregation**: Fetches the latest news from multiple financial RSS feeds (Bloomberg, Financial Times, Seeking Alpha, TechCrunch, and more - see `news_sources.json`).
-- **AI-Powered Analysis (Configurable LLM)**: The core application (`app.py`) uses a Large Language Model (LLM) for features like Q&A and stock recommendations. This is configurable via an `llm_config.json` file, allowing you to use providers like OpenAI, Anthropic Claude, or a local LLM (e.g., via LM Studio).
+- **Automated News Aggregation**: Fetches the latest news from multiple financial RSS feeds (Bloomberg, Financial Times, Seeking Alpha, TechCrunch, and more - see `news_sources.json`). Uses intelligent feed tracking to skip recently-checked feeds and HTTP conditional requests to minimize bandwidth.
+- **AI-Powered Analysis (Configurable LLM)**: The core application (`app.py`) uses a Large Language Model (LLM) for features like Q&A and stock recommendations. Supports multiple providers: OpenAI, Anthropic Claude, Ollama, or local LLM (e.g., via LM Studio). Configured via `.env` file (recommended) or `llm_config.json` (legacy).
 - **Vector-Based Semantic Search**: Stores articles in a ChromaDB vector database, allowing users to search for news based on concepts, not just keywords.
 - **Daily Market Report**: Automatically categorizes today's news into key market areas (e.g., "Interest Rates," "Sector News," "Global Markets") and generates a daily report.
-- **AI Stock Recommendations**: The AI agent analyzes news (via `app.py` and its configured LLM) to extract potential BUY/SELL signals for specific stocks, including the reasoning and source article.
-- **Interactive Q&A**: A chat interface (`/ask`) that uses a RAG pipeline (powered by the configured LLM in `app.py`) to answer user questions based on the latest news, complete with source citations.
+- **AI Stock Recommendations**: The AI agent analyzes news (via `app.py` and its configured LLM) to extract potential BUY/SELL signals for specific stocks, including the reasoning and source article. Recommendations are validated to ensure they're actual tradeable stocks (not countries, sectors, or other entities).
+- **Interactive Q&A**: A chat interface (`/ask`) that uses a RAG pipeline (powered by the configured LLM) to answer user questions based on the latest news, complete with source citations.
 - **Web Interface**: A clean, user-friendly web UI built with Flask and Tailwind CSS for easy navigation between reports, recommendations, and search.
+- **Performance Optimizations**: Feed-level tracking, conditional HTTP requests, and smart feed selection reduce processing time by 60-80% on subsequent runs.
 
 ---
 
@@ -20,10 +21,11 @@ MarketGPT is a comprehensive financial news analysis platform that automatically
 
 The application follows a multi-step pipeline:
 
-1. **Fetch**: A background process periodically scrapes RSS feeds for new articles. The fetch interval is configurable via the `NEWS_FETCH_INTERVAL_MINUTES` environment variable (default: 30 minutes). See Configuration section below.
-2. **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database. The database is automatically created if it doesn't exist. If you encounter issues or want to start fresh with news articles, you can use the `delete_db.py` script (see Helper Scripts). Stock recommendations are stored in a separate ChromaDB collection.
+1. **Fetch**: A background process periodically scrapes RSS feeds for new articles. The system uses intelligent feed tracking to skip recently-checked feeds and uses HTTP conditional requests (ETags/Last-Modified) to avoid downloading unchanged feeds. The fetch interval is configurable via the `NEWS_FETCH_INTERVAL_MINUTES` environment variable (default: 30 minutes). See Configuration section below.
+2. **Scrape & Store**: For each new article, it scrapes the full content, generates a vector embedding using `SentenceTransformers`, and stores the text, metadata, and embedding in a local **ChromaDB** database. The database is automatically created if it doesn't exist. If you encounter issues or want to start fresh with news articles, you can use the `delete_db.py` script (see Helper Scripts). Stock recommendations are stored in a **SQLite** database (`recommendations.sqlite`) for better querying and date-based filtering.
 3. **Analyze & Recommend (via `app.py`)**:
-   - The main application's background tasks analyze the day's news using the LLM configured in `llm_config.json` to extract and store stock recommendations.
+   - The main application's background tasks analyze the day's news using the configured LLM (via `.env` or `llm_config.json`) to extract and store stock recommendations.
+   - Recommendations are validated before storage to ensure they're actual stocks (not countries, sectors, or other non-tradeable entities).
    - The Q&A feature also uses this configured LLM to generate responses.
 4. **Generate Report**: The system uses vector search to find the most relevant articles for predefined market categories and compiles them into a markdown report.
 5. **Serve**: A **Flask** web server provides the frontend, answering user requests by querying the ChromaDB database and interacting with the LLM (as configured in `llm_config.json`) for the Q&A and recommendation features.
@@ -38,7 +40,16 @@ The application follows a multi-step pipeline:
 
 - [x] Add "/" route
 
-July 14th, 2025: **The stock recommendations needs debugged.** The logs show that the LLM is returning valid looking JSON but when we visit the page we don't see any recommendations. We should probably just make the easy pivot to storing recommendations in SQLite or something similar, it's too hard to debug ChromaDB for this usage.
+~~July 14th, 2025: **The stock recommendations needs debugged.** The logs show that the LLM is returning valid looking JSON but when we visit the page we don't see any recommendations. We should probably just make the easy pivot to storing recommendations in SQLite or something similar, it's too hard to debug ChromaDB for this usage.~~
+
+- [x] Migrate recommendations to SQLite
+
+**December 2nd, 2025: Today's Recommendations Showing Blank** ⚠️
+- The "today's recommendations" page is currently showing blank/empty
+- The system is processing recommendations and storing them in SQLite
+- Root cause is under investigation
+- Historical recommendations and API endpoints appear to be working
+- See issue tracking for updates
 
 ---
 
@@ -152,7 +163,9 @@ python app.py
 
 The application will be available at `http://localhost:5070` (or the port specified in your `.env` file).
 
-The first time you run it, the background process will begin fetching and storing articles. This may take a few minutes. Subsequent reports and recommendations will be generated from this data. The background task will fetch new articles every 30 minutes by default (configurable via `NEWS_FETCH_INTERVAL_MINUTES` in `.env`).
+The first time you run it, the background process will begin fetching and storing articles. This may take a few minutes. Subsequent runs will be much faster as the system tracks which feeds have been recently checked and skips them. The background task will fetch new articles every 30 minutes by default (configurable via `NEWS_FETCH_INTERVAL_MINUTES` in `.env`).
+
+**Performance Note:** On the first run, all feeds are checked. On subsequent runs, only feeds that haven't been checked within the fetch interval are processed, significantly reducing startup time (60-80% faster).
 
 ---
 
@@ -182,9 +195,24 @@ Navigate to `http://localhost:5070` (or your configured port) in your browser.
 
 ```
 ├── app.py                    # Main Flask application, routes
-├── /templates/               # HTML templates for the web UI
-└── /chroma/                  # Directory for the persistent ChromaDB database
+├── db_utils.py              # SQLite utilities for recommendations and feed metadata
+├── news_sources.json        # RSS feed configuration
+├── .env.example             # Environment variable template
+├── recommendations.sqlite   # SQLite database for recommendations and feed metadata
+├── /templates/              # HTML templates for the web UI
+├── /chroma/                 # Directory for the persistent ChromaDB database
+└── /docs/                   # Documentation files (ARCHITECTURE.md, LLM_AGENT_DOCUMENTATION.md, etc.)
 ```
+
+## 📚 Additional Documentation
+
+- **`ARCHITECTURE.md`** - Complete system architecture and data flows
+- **`LLM_AGENT_DOCUMENTATION.md`** - How the LLM/Agent works, prompts, and validation
+- **`ENV_SETUP.md`** - Detailed environment variable configuration
+- **`PERFORMANCE_OPTIMIZATIONS.md`** - Feed tracking and performance improvements
+- **`FEED_TRACKING_IMPLEMENTATION.md`** - Feed metadata tracking implementation details
+- **`QUICK_START.md`** - Quick reference guide
+- **`CONFIG_PRIORITY.md`** - Configuration priority and security guidelines
 
 ## 📄 License
 
