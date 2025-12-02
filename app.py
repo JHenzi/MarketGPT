@@ -10,7 +10,6 @@ from flask import render_template_string
 from flask import request, render_template
 from markupsafe import Markup
 from sentence_transformers import SentenceTransformer
-from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from zoneinfo import ZoneInfo
 # SQLite for recommendations
@@ -31,18 +30,23 @@ import json
 import markdown
 import numpy as np
 import os
-import os
 import random
 import re
 import requests
 import sys
 import threading
 import time
-import time
-import time
 import trafilatura
 import uuid
 import traceback
+
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("[WARNING] python-dotenv not installed. Install it with: pip install python-dotenv")
+    print("[WARNING] Environment variables will not be loaded from .env file")
 
 
 
@@ -66,52 +70,123 @@ collection = client.get_or_create_collection(name="marketwatch")
 init_recommendations_db()
 print("[INIT] SQLite recommendations database initialized")
 
-# Load LLM configuration from JSON file
+# Load LLM configuration from environment variables and JSON file (for backward compatibility)
 def load_llm_config(path="llm_config.json"):
+    """
+    Load LLM configuration from environment variables (REQUIRED for API keys) or JSON file (fallback for non-sensitive settings only).
+    
+    PRIORITY ORDER:
+    1. Environment variables (.env file) - ALWAYS used for API keys
+    2. JSON file - Only used for provider, endpoint, model (NO API KEYS)
+    
+    SECURITY: API keys are NEVER read from JSON files. They must be in .env file.
+    """
+    # Default configuration
     default_config = {
         "provider": "local",
         "endpoint": "http://localhost:1234/v1/chat/completions",
-        "api_key": None
+        "api_key": None,
+        "model": None
     }
+    
+    # Try to load from JSON file for backward compatibility (non-sensitive settings only)
+    json_config = {}
     if os.path.exists(path):
         try:
             with open(path, "r") as f:
-                user_config = json.load(f)
-                return {**default_config, **user_config}
+                json_config = json.load(f)
+            
+            # SECURITY WARNING: Check if API key is in JSON file
+            if json_config.get("api_key") and json_config.get("api_key") not in [None, "", "YOUR_OPENAI_API_KEY_HERE", "YOUR_CLAUDE_API_KEY_HERE"]:
+                print(f"[llm_config] ⚠️  SECURITY WARNING: API key found in {path}!")
+                print("[llm_config] ⚠️  API keys should ONLY be stored in .env file, not in JSON files.")
+                print("[llm_config] ⚠️  The API key from JSON will be IGNORED. Please move it to .env file.")
         except Exception as e:
-            print(f"[llm_config] Failed to load config, using default. Error: {e}")
-    return default_config
+            print(f"[llm_config] Failed to load JSON config, using defaults. Error: {e}")
+    
+    # Load from environment variables (takes precedence, REQUIRED for API keys)
+    provider = os.getenv("LLM_PROVIDER", json_config.get("provider", "local"))
+    
+    config = {
+        "provider": provider,
+        "api_key": None,  # API keys are ONLY from environment variables
+        "endpoint": None,
+        "model": None
+    }
+    
+    # Load provider-specific configuration
+    # API KEYS: ONLY from environment variables, NEVER from JSON
+    if provider == "openai":
+        config["api_key"] = os.getenv("OPENAI_API_KEY")  # Only from .env, never from JSON
+        config["endpoint"] = os.getenv("OPENAI_ENDPOINT") or json_config.get("endpoint") or "https://api.openai.com/v1/chat/completions"
+        config["model"] = os.getenv("OPENAI_MODEL") or json_config.get("model") or "gpt-4"
+    elif provider == "claude":
+        config["api_key"] = os.getenv("CLAUDE_API_KEY")  # Only from .env, never from JSON
+        config["endpoint"] = os.getenv("CLAUDE_ENDPOINT") or json_config.get("endpoint") or "https://api.anthropic.com/v1/messages"
+        config["model"] = os.getenv("CLAUDE_MODEL") or json_config.get("model") or "claude-sonnet-4-20250514"
+    elif provider == "ollama":
+        config["api_key"] = None  # Ollama typically doesn't require API keys
+        config["endpoint"] = os.getenv("OLLAMA_ENDPOINT") or json_config.get("endpoint") or "http://localhost:11434/v1/chat/completions"
+        config["model"] = os.getenv("OLLAMA_MODEL") or json_config.get("model") or "llama3.2"
+    else:  # local
+        config["api_key"] = None
+        config["endpoint"] = os.getenv("LOCAL_LLM_ENDPOINT") or json_config.get("endpoint") or "http://localhost:1234/v1/chat/completions"
+        config["model"] = os.getenv("LOCAL_LLM_MODEL") or json_config.get("model")
+    
+    # Merge with defaults
+    final_config = {**default_config, **config}
+    
+    return final_config
+
 # Actually load the LLM config
 llm_config = load_llm_config()
-# Check if the LLM config is valid
-if llm_config["provider"] not in ["local", "openai", "claude"]:
-    print(f"[llm_config] Invalid provider '{llm_config['provider']}' in llm_config.json. Using default 'local'.")
+
+# Validate configuration
+if llm_config["provider"] not in ["local", "openai", "claude", "ollama"]:
+    print(f"[llm_config] Invalid provider '{llm_config['provider']}'. Using default 'local'.")
     llm_config["provider"] = "local"
-# If using OpenAI or Claude, ensure the endpoint is set correctly
+
+# Log configuration source for clarity
+print(f"[llm_config] Configuration loaded:")
+print(f"  Provider: {llm_config['provider']} (from {'environment' if os.getenv('LLM_PROVIDER') else 'JSON/default'})")
+if llm_config["provider"] in ["openai", "claude"]:
+    api_key_source = "environment (.env)" if os.getenv(f"{llm_config['provider'].upper()}_API_KEY") else "NOT SET"
+    print(f"  API Key: {'Set' if llm_config['api_key'] else 'Not set'} ({api_key_source})")
+    if not llm_config["api_key"]:
+        print(f"  ⚠️  WARNING: API key not set for {llm_config['provider']}. Set {llm_config['provider'].upper()}_API_KEY in .env file.")
+        print("  ⚠️  The application may fail when making API calls.")
+else:
+    print(f"  API Key: Not required for {llm_config['provider']}")
+
+endpoint_source = "environment" if (os.getenv("OPENAI_ENDPOINT") or os.getenv("CLAUDE_ENDPOINT") or os.getenv("OLLAMA_ENDPOINT") or os.getenv("LOCAL_LLM_ENDPOINT")) else "JSON/default"
+print(f"  Endpoint: {llm_config['endpoint']} (from {endpoint_source})")
+
+model_source = "environment" if (os.getenv("OPENAI_MODEL") or os.getenv("CLAUDE_MODEL") or os.getenv("OLLAMA_MODEL") or os.getenv("LOCAL_LLM_MODEL")) else "JSON/default"
+if llm_config.get("model"):
+    print(f"  Model: {llm_config['model']} (from {model_source})")
+
+# Validate provider-specific requirements
 if llm_config["provider"] in ["openai", "claude"]:
     if not llm_config["endpoint"]:
-        print("[llm_config] Endpoint is required for OpenAI or Claude. Using default endpoint.")
-        llm_config["endpoint"] = "https://api.openai.com/v1/chat/completions" if llm_config["provider"] == "openai" else "https://api.anthropic.com/v1/complete"
-    if not llm_config["api_key"]:
-        print("[llm_config] API key is required for OpenAI or Claude. Please set it in llm_config.json.")
-        sys.exit(1)
-# If using local LLM, ensure the endpoint is set correctly
-if llm_config["provider"] == "local":
+        print(f"[llm_config] Endpoint not set for {llm_config['provider']}. Using default.")
+elif llm_config["provider"] in ["local", "ollama"]:
     if not llm_config["endpoint"]:
-        print("[llm_config] Endpoint is required for local LLM. Using default endpoint.")
-        llm_config["endpoint"] = "http://localhost:1234/v1/chat/completions"
-# Ensure the local endpoint is reachable
-try:
-    response = requests.get(llm_config["endpoint"])
-    if response.status_code != 200:
-        print(f"[llm_config] Local LLM endpoint {llm_config['endpoint']} is not reachable. Please check your setup.")
-        sys.exit(1)
-except requests.RequestException as e:
-    print(f"[llm_config] Error connecting to local LLM endpoint: {e}")
-    sys.exit(1)
+        print(f"[llm_config] Endpoint not set for {llm_config['provider']}. Using default.")
+    # Only check endpoint reachability for local/ollama if not in production
+    if os.getenv("FLASK_ENV") != "production":
+        try:
+            # Just check if endpoint is accessible, don't fail if it's not
+            response = requests.get(llm_config["endpoint"].replace("/v1/chat/completions", ""), timeout=2)
+        except requests.RequestException:
+            print(f"[llm_config] WARNING: {llm_config['provider']} endpoint {llm_config['endpoint']} may not be reachable.")
+            print("[llm_config] Make sure your LLM server is running.")
 
 # Prepare LLM messages and send them to the endpoint
 def prepare_llm_request(messages, temperature=0.7):
+    """
+    Prepare LLM request based on provider type.
+    Supports: openai, claude, ollama, local
+    """
     provider = llm_config.get("provider", "local")
     endpoint = llm_config["endpoint"]
     headers = {}
@@ -120,11 +195,22 @@ def prepare_llm_request(messages, temperature=0.7):
         "temperature": temperature
     }
 
-    if provider in ["openai", "claude"]:
-        headers["Authorization"] = f"Bearer {llm_config['api_key']}"
+    if provider == "openai":
+        if llm_config.get("api_key"):
+            headers["Authorization"] = f"Bearer {llm_config['api_key']}"
         if llm_config.get("model"):
             payload["model"] = llm_config["model"]
-    else:
+    elif provider == "claude":
+        if llm_config.get("api_key"):
+            headers["x-api-key"] = llm_config["api_key"]
+            headers["anthropic-version"] = "2023-06-01"
+        if llm_config.get("model"):
+            payload["model"] = llm_config["model"]
+    elif provider == "ollama":
+        # Ollama uses OpenAI-compatible API, no auth needed
+        if llm_config.get("model"):
+            payload["model"] = llm_config["model"]
+    else:  # local provider
         # local provider — only add model if set
         if llm_config.get("model"):
             payload["model"] = llm_config["model"]
@@ -135,33 +221,47 @@ def prepare_llm_request(messages, temperature=0.7):
 # SentenceTransformer model
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-feed_urls = [
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15837362",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19832390",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19794221",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839135",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100370673",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000113",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000108",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000115",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001054",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19836768",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000110",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000116",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000739",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=44877279",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=103395579",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258",
-    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664"
-    # add more RSS URLs here
-]
+# Load news sources from JSON file
+def load_news_sources(path="news_sources.json"):
+    """
+    Load news sources from JSON file.
+    Returns a tuple of (feed_urls, batch_size, delay_between_batches, delay_between_feeds)
+    """
+    default_sources = [
+        "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
+    ]
+    
+    if not os.path.exists(path):
+        print(f"[news_sources] Config file {path} not found. Using defaults.")
+        return default_sources, 5, 2.0, 1.0
+    
+    try:
+        with open(path, "r") as f:
+            config = json.load(f)
+        
+        sources = config.get("sources", default_sources)
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_sources = []
+        for url in sources:
+            if url not in seen:
+                seen.add(url)
+                unique_sources.append(url)
+        
+        batch_size = config.get("batch_size", 5)
+        delay_between_batches = config.get("delay_between_batches", 2.0)
+        delay_between_feeds = config.get("delay_between_feeds", 1.0)
+        
+        print(f"[news_sources] Loaded {len(unique_sources)} unique sources from {path}")
+        if len(sources) != len(unique_sources):
+            print(f"[news_sources] Removed {len(sources) - len(unique_sources)} duplicate sources")
+        
+        return unique_sources, batch_size, delay_between_batches, delay_between_feeds
+    except Exception as e:
+        print(f"[news_sources] Error loading config from {path}: {e}")
+        return default_sources, 5, 2.0, 1.0
+
+feed_urls, BATCH_SIZE, DELAY_BETWEEN_BATCHES, DELAY_BETWEEN_FEEDS = load_news_sources()
 
 def fetch_full_article(url):
     try:
@@ -173,20 +273,62 @@ def fetch_full_article(url):
     return None
 
 
-def fetch_rss_multiple(feed_urls):
+def fetch_rss_multiple(feed_urls, batch_size=None, delay_between_batches=None):
+    """
+    Fetch RSS feeds in batches to avoid overwhelming the system.
+    Processes feeds in batches with delays between batches.
+    """
+    if batch_size is None:
+        batch_size = BATCH_SIZE
+    if delay_between_batches is None:
+        delay_between_batches = DELAY_BETWEEN_BATCHES
+    
     all_entries = []
-    for url in feed_urls:
-        parsed_feed = feedparser.parse(url)
-        entries = parsed_feed.entries
-        # print(f"[fetch_rss_multiple] Fetched {len(entries)} entries from {url}")
-        all_entries.extend(entries)
+    total_feeds = len(feed_urls)
+    
+    print(f"[fetch_rss_multiple] Processing {total_feeds} feeds in batches of {batch_size}")
+    
+    for i in range(0, total_feeds, batch_size):
+        batch = feed_urls[i:i+batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_feeds + batch_size - 1) // batch_size
+        
+        print(f"[fetch_rss_multiple] Processing batch {batch_num}/{total_batches} ({len(batch)} feeds)")
+        
+        for url in batch:
+            try:
+                parsed_feed = feedparser.parse(url)
+                entries = parsed_feed.entries
+                all_entries.extend(entries)
+                print(f"[fetch_rss_multiple] Fetched {len(entries)} entries from feed")
+            except Exception as e:
+                print(f"[fetch_rss_multiple] Error fetching feed {url}: {e}")
+                continue
+            
+            # Small delay between individual feeds
+            if delay_between_batches > 0:
+                time.sleep(DELAY_BETWEEN_FEEDS + random.uniform(0, 0.3))
+        
+        # Delay between batches (except for the last batch)
+        if i + batch_size < total_feeds and delay_between_batches > 0:
+            print(f"[fetch_rss_multiple] Waiting {delay_between_batches}s before next batch...")
+            time.sleep(delay_between_batches)
+    
+    print(f"[fetch_rss_multiple] Total entries fetched: {len(all_entries)}")
     return all_entries
 
 
 def embed_text(texts):
     return [emb.tolist() for emb in model.encode(texts)]
 
-def fetch_and_store(feed_urls, delay_between=1.0):
+def fetch_and_store(feed_urls, delay_between=None):
+    """
+    Fetch RSS feeds and store articles in batches.
+    Processes articles in batches to avoid overwhelming the system.
+    """
+    if delay_between is None:
+        delay_between = DELAY_BETWEEN_FEEDS
+    
     print("[fetch_and_store] Starting fetch...")
 
     entries = fetch_rss_multiple(feed_urls)
@@ -194,62 +336,78 @@ def fetch_and_store(feed_urls, delay_between=1.0):
     added = 0
 
     print(f"[fetch_and_store] Total {total} entries fetched from all RSS feeds.")
+    print(f"[fetch_and_store] Processing articles in batches of {BATCH_SIZE}")
 
-    for i, entry in enumerate(entries, 1):
-        title = entry.get("title", "")
-        summary = entry.get("summary", "")
-        link = entry.get("link", "")
-        if not link:
-            print(f"[{i}/{total}] Skipping entry with missing link.")
-            continue  # skip malformed entry
-        published = entry.get("published") or entry.get("pubDate") or ""
-        published_date = ""
+    # Process articles in batches
+    for batch_start in range(0, total, BATCH_SIZE):
+        batch_end = min(batch_start + BATCH_SIZE, total)
+        batch_entries = entries[batch_start:batch_end]
+        batch_num = (batch_start // BATCH_SIZE) + 1
+        total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
+        
+        print(f"[fetch_and_store] Processing article batch {batch_num}/{total_batches} ({len(batch_entries)} articles)")
 
-        if published:
-            try:
-                parsed = date_parser.parse(published)
-                published_date = parsed.strftime("%Y-%m-%d")
-            except Exception as e:
-                print(f"[{i}/{total}] Failed to parse published date: {published}")
+        for i, entry in enumerate(batch_entries, 1):
+            global_index = batch_start + i
+            title = entry.get("title", "")
+            summary = entry.get("summary", "")
+            link = entry.get("link", "")
+            if not link:
+                print(f"[{global_index}/{total}] Skipping entry with missing link.")
+                continue  # skip malformed entry
+            published = entry.get("published") or entry.get("pubDate") or ""
+            published_date = ""
 
-        # Skip if already in DB
-        existing = collection.get(where={"link": link})
-        if existing["ids"]:
-            print(f"[{i}/{total}] Skipping already stored link: {link}")
-            continue
+            if published:
+                try:
+                    parsed = date_parser.parse(published)
+                    published_date = parsed.strftime("%Y-%m-%d")
+                except Exception as e:
+                    print(f"[{global_index}/{total}] Failed to parse published date: {published}")
 
-        print(f"[{i}/{total}] Fetching full article from: {link}")
-        # Fetch full article
-        full_article = fetch_full_article(link)
-        if full_article and len(full_article) > 200:
-            text = f"{title}. {full_article}"
-            print(f"[{i}/{total}] Using full article content (length={len(full_article)})")
-        else:
-            text = f"{title}. {summary}"
-            print(f"[{i}/{total}] Using summary content (length={len(summary)})")
+            # Skip if already in DB
+            existing = collection.get(where={"link": link})
+            if existing["ids"]:
+                print(f"[{global_index}/{total}] Skipping already stored link: {link}")
+                continue
 
-        embedding = embed_text([text])[0]
-        doc_id = str(uuid.uuid4())
+            print(f"[{global_index}/{total}] Fetching full article from: {link}")
+            # Fetch full article
+            full_article = fetch_full_article(link)
+            if full_article and len(full_article) > 200:
+                text = f"{title}. {full_article}"
+                print(f"[{global_index}/{total}] Using full article content (length={len(full_article)})")
+            else:
+                text = f"{title}. {summary}"
+                print(f"[{global_index}/{total}] Using summary content (length={len(summary)})")
 
-        collection.add(
-            documents=[text],
-            embeddings=[embedding],
-            ids=[doc_id],
-            metadatas=[{
-                "link": link,
-                "published": published,
-                "published_date": published_date,
-                "title": title,
-                "source": "rss",
-                "length": len(text)
-            }]
-        )
+            embedding = embed_text([text])[0]
+            doc_id = str(uuid.uuid4())
 
-        added += 1
-        print(f"[{i}/{total}] Added document id={doc_id} to collection.")
+            collection.add(
+                documents=[text],
+                embeddings=[embedding],
+                ids=[doc_id],
+                metadatas=[{
+                    "link": link,
+                    "published": published,
+                    "published_date": published_date,
+                    "title": title,
+                    "source": "rss",
+                    "length": len(text)
+                }]
+            )
 
-        # Delay to throttle
-        time.sleep(delay_between + random.uniform(0, 0.5))  # jitter helps mimic natural behavior
+            added += 1
+            print(f"[{global_index}/{total}] Added document id={doc_id} to collection.")
+
+            # Delay to throttle
+            time.sleep(delay_between + random.uniform(0, 0.5))  # jitter helps mimic natural behavior
+        
+        # Delay between batches (except for the last batch)
+        if batch_end < total and DELAY_BETWEEN_BATCHES > 0:
+            print(f"[fetch_and_store] Waiting {DELAY_BETWEEN_BATCHES}s before next batch...")
+            time.sleep(DELAY_BETWEEN_BATCHES)
 
     print(f"[fetch_and_store] Inserted {added} new entries into the database.")
 
@@ -1190,4 +1348,9 @@ if __name__ == "__main__":
     thread = threading.Thread(target=periodic_fetch_and_report, daemon=True)
     thread.start()
 
-    app.run(port=5020, debug=True, host="0.0.0.0")
+    # Get port from environment variable, fallback to 5070
+    port = int(os.getenv("PORT", "5070"))
+    debug_mode = os.getenv("FLASK_ENV") != "production"
+    
+    print(f"[app] Starting Flask server on port {port} (debug={debug_mode})")
+    app.run(port=port, debug=debug_mode, host="0.0.0.0")

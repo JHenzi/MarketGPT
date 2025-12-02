@@ -1,6 +1,6 @@
 {
   "provider": "claude",
-  "endpoint": "https://api.anthropic.com/v1/complete",
-  "model": "claude-sonnet",
-  "api_key": "YOUR_CLAUDE_API_KEY_HERE"
+  "endpoint": "https://api.anthropic.com/v1/messages",
+  "model": "claude-sonnet-4-20250514",
+  "_comment": "⚠️ DO NOT PUT API KEYS IN THIS FILE! Use .env file instead. Set CLAUDE_API_KEY in .env"
 }

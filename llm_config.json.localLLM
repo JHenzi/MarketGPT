@@ -1,4 +1,5 @@
 {
     "provider": "local",
-    "endpoint": "http://localhost:1234/v1/chat/completions"
+    "endpoint": "http://localhost:1234/v1/chat/completions",
+    "_comment": "⚠️ DO NOT PUT API KEYS IN THIS FILE! Use .env file instead. This file is for non-sensitive settings only."
 }
