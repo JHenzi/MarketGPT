@@ -33,3 +33,6 @@ Thumbs.db
 # Ignore environment variable files
 .env
 .vscode
+
+# SQLite database
+*.sqlite
